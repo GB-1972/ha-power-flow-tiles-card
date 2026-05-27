@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.4.0 — Prototyp mit visuellem Editor und eigener Sonnenverlaufs-Sektion (Lens-Bogen, Tag-/Nacht-Dauer, % des Tages, Power-Pill bei der Sonne).
+v0.4.1 — Sonnenverlaufs-Sektion mit schmalem Lens-Strahl, sonnengelber Sonne und stabil persistierter Sonne-Entity im Editor.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.4.0`
+   - URL: `/local/power-flow-tiles-card.js?v=0.4.1`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 

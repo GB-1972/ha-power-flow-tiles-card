@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.4.0';
+const PFT_VERSION = '0.4.1';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -338,7 +338,7 @@ class PowerFlowTilesCard extends HTMLElement {
 
     const shape = document.createElementNS(svgNS, 'path');
     shape.setAttribute('class', 'pft-solar-arc-shape');
-    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 28 10 60 Z');
+    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 -8 10 60 Z');
     svg.appendChild(shape);
 
     const ground = document.createElementNS(svgNS, 'line');
@@ -379,16 +379,6 @@ class PowerFlowTilesCard extends HTMLElement {
 
     stage.appendChild(svg);
 
-    const pill = document.createElement('div');
-    pill.className = 'pft-solar-arc-power-pill';
-    const pillTxt = document.createElement('span');
-    const pillIc = document.createElement('ha-icon');
-    pillIc.setAttribute('icon', 'mdi:flash');
-    pill.appendChild(pillTxt);
-    pill.appendChild(pillIc);
-    pill.style.opacity = '0';
-    stage.appendChild(pill);
-
     const times = document.createElement('div');
     times.className = 'pft-solar-arc-times';
     const tRise = document.createElement('span');
@@ -410,7 +400,6 @@ class PowerFlowTilesCard extends HTMLElement {
       riseTxt, setTxt, progressTxt,
       dayTxt, nightTxt,
       svg, sun, shape,
-      pill, pillTxt,
       tRise, tSet,
     };
 
@@ -785,25 +774,9 @@ class PowerFlowTilesCard extends HTMLElement {
       els.sun.setAttribute('cx', bx.toFixed(2));
       els.sun.setAttribute('cy', by.toFixed(2));
       els.sun.style.opacity = '1';
-
-      const solarPower = this._getNum(this._config.solar.power);
-      if (solarPower !== null && solarPower > (this._config.flow_threshold ?? 5)) {
-        const pillText = solarPower >= 1000
-          ? `${(solarPower / 1000).toFixed(this._config.decimals_power ?? 2)} kW`
-          : `${Math.round(solarPower)} W`;
-        els.pillTxt.textContent = pillText;
-        const leftPct = (bx / 200) * 100;
-        const topPct = (by / 70) * 100;
-        els.pill.style.left = `${leftPct.toFixed(2)}%`;
-        els.pill.style.top = `${topPct.toFixed(2)}%`;
-        els.pill.style.opacity = '1';
-      } else {
-        els.pill.style.opacity = '0';
-      }
     } else {
       els.svg.classList.add('pft-solar-arc-night');
       els.sun.style.opacity = '0';
-      els.pill.style.opacity = '0';
     }
   }
 
@@ -1040,15 +1013,15 @@ class PowerFlowTilesCard extends HTMLElement {
         overflow: visible;
       }
       .pft-solar-arc-shape {
-        fill: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
-        opacity: 0.78;
+        fill: color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 25%, #fff2a8);
+        opacity: 0.85;
         filter:
-          drop-shadow(0 0 6px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 50%, transparent))
-          drop-shadow(0 0 14px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 25%, transparent));
+          drop-shadow(0 0 5px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 45%, transparent))
+          drop-shadow(0 0 12px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 22%, transparent));
         transition: opacity 400ms ease;
       }
       .pft-solar-arc-night .pft-solar-arc-shape {
-        opacity: 0.18;
+        opacity: 0.22;
         filter: none;
       }
       .pft-solar-arc-ground {
@@ -1063,34 +1036,15 @@ class PowerFlowTilesCard extends HTMLElement {
         fill: color-mix(in srgb, var(--primary-text-color) 35%, transparent);
       }
       .pft-solar-arc-sun {
-        fill: #fff8d6;
-        stroke: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
-        stroke-width: 1.2;
+        fill: #ffd60a;
+        stroke: #ffb300;
+        stroke-width: 1;
         vector-effect: non-scaling-stroke;
         filter:
-          drop-shadow(0 0 4px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 95%, transparent))
-          drop-shadow(0 0 10px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 55%, transparent));
+          drop-shadow(0 0 4px #ffd60a)
+          drop-shadow(0 0 10px color-mix(in srgb, #ffd60a 60%, transparent));
         transition: cx 1.2s ease-out, cy 1.2s ease-out, opacity 400ms ease;
       }
-      .pft-solar-arc-power-pill {
-        position: absolute;
-        transform: translate(-50%, -100%);
-        margin-top: -6px;
-        background: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
-        color: #fff;
-        padding: 3px 9px 3px 8px;
-        border-radius: 999px;
-        font-size: 0.78rem; font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        display: inline-flex; align-items: center; gap: 4px;
-        box-shadow:
-          0 2px 6px rgba(0,0,0,0.25),
-          0 0 10px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 55%, transparent);
-        transition: left 1.2s ease-out, top 1.2s ease-out, opacity 400ms ease;
-        pointer-events: none;
-      }
-      .pft-solar-arc-power-pill ha-icon { --mdc-icon-size: 12px; }
       .pft-solar-arc-times {
         position: absolute;
         left: 0; right: 0;
@@ -1488,7 +1442,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
       },
       _sun_arc: {
         show_sun_arc: c.solar?.show_sun_arc !== false,
-        sun_entity: c.solar?.sun_entity ?? '',
+        sun_entity: c.solar?.sun_entity || 'sun.sun',
       },
       battery: {
         power: c.battery?.power ?? '',
