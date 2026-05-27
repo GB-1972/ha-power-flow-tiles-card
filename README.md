@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.2.0 — Prototyp mit visuellem Editor.
+v0.3.0 — Prototyp mit visuellem Editor und Sonnenverlaufs-Bogen im PV-Tile.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.2.0`
+   - URL: `/local/power-flow-tiles-card.js?v=0.3.0`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -118,12 +118,14 @@ Wenn die Animation falsch herum läuft (z. B. „Akku entlädt, obwohl er lädt"
 
 ### `solar`
 
-| Option         | Typ    | Beschreibung                                          |
-| -------------- | ------ | ----------------------------------------------------- |
-| `power`        | entity | Gesamt-PV-Leistung in W.                              |
-| `energy_today` | entity | Tagesertrag in kWh (Sub-Text im PV-Tile).             |
-| `color`        | css    | Akzentfarbe.                                          |
-| `mppts`        | list   | Liste der einzelnen Strings, beliebig viele Einträge. |
+| Option         | Typ    | Default     | Beschreibung                                                                                              |
+| -------------- | ------ | ----------- | --------------------------------------------------------------------------------------------------------- |
+| `power`        | entity | –           | Gesamt-PV-Leistung in W.                                                                                  |
+| `energy_today` | entity | –           | Tagesertrag in kWh (Sub-Text im PV-Tile).                                                                 |
+| `color`        | css    | `#f5a524`   | Akzentfarbe.                                                                                              |
+| `show_sun_arc` | bool   | `true`      | Dezenter Bogen Sonnenaufgang→Sonnenuntergang im PV-Tile mit wandernder Sonne. `false` zum Ausblenden.    |
+| `sun_entity`   | entity | `sun.sun`   | Sonne-Entity (`domain: sun`) für `next_rising` / `next_setting`. Standard reicht für die meisten Setups. |
+| `mppts`        | list   | `[]`        | Liste der einzelnen Strings, beliebig viele Einträge.                                                     |
 
 Pro `mppts`-Eintrag:
 
