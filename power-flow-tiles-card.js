@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.1.0';
+const PFT_VERSION = '0.2.0';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -866,6 +866,648 @@ class PowerFlowTilesCard extends HTMLElement {
       }
     `;
   }
+}
+
+PowerFlowTilesCard.getConfigElement = function () {
+  return document.createElement('power-flow-tiles-card-editor');
+};
+
+const EDITOR_LABELS = {
+  title: 'Titel',
+  icon: 'Icon',
+  temperature: 'Außentemperatur',
+  power: 'Power-Sensor (W)',
+  energy_today: 'Tagesertrag (kWh)',
+  energy_today_home: 'Tagesverbrauch (kWh)',
+  color: 'Farbe',
+  soc: 'SOC-Sensor (%)',
+  capacity_kwh: 'Kapazität (kWh)',
+  invert_power: 'Vorzeichen invertieren (+ = Laden)',
+  charge_today: 'Tagesladung (kWh)',
+  discharge_today: 'Tagesentladung (kWh)',
+  color_discharge: 'Farbe Entladen',
+  invert: 'Vorzeichen invertieren (+ = Einspeisung)',
+  import_today: 'Netzbezug heute (kWh)',
+  export_today: 'Einspeisung heute (kWh)',
+  color_import: 'Farbe Bezug',
+  color_export: 'Farbe Einspeisung',
+  mode: 'Modus',
+  decimals_power: 'Nachkommastellen kW',
+  decimals_energy: 'Nachkommastellen kWh',
+  flow_threshold: 'Flow-Schwelle (W)',
+  name: 'Name',
+  max: 'Max (W)',
+};
+
+const SENSOR_FILTER = { entity: { filter: { domain: 'sensor' } } };
+const TEMP_FILTER = { entity: { filter: { device_class: 'temperature' } } };
+
+const EDITOR_SCHEMA = [
+  {
+    type: 'grid',
+    name: '',
+    schema: [
+      { name: 'title', selector: { text: {} } },
+      { name: 'icon', selector: { icon: {} } },
+    ],
+  },
+  {
+    name: 'environment',
+    type: 'expandable',
+    title: 'Umgebung',
+    icon: 'mdi:thermometer',
+    schema: [
+      { name: 'temperature', selector: TEMP_FILTER },
+    ],
+  },
+  {
+    name: 'solar',
+    type: 'expandable',
+    title: 'Solar',
+    icon: 'mdi:solar-power-variant',
+    expanded: true,
+    schema: [
+      { name: 'power', selector: SENSOR_FILTER },
+      { name: 'energy_today', selector: SENSOR_FILTER },
+      { name: 'color', selector: { text: {} } },
+    ],
+  },
+  {
+    name: 'battery',
+    type: 'expandable',
+    title: 'Akku',
+    icon: 'mdi:battery',
+    schema: [
+      { name: 'power', selector: SENSOR_FILTER },
+      { name: 'soc', selector: SENSOR_FILTER },
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'capacity_kwh', selector: { number: { min: 0, step: 0.1, mode: 'box', unit_of_measurement: 'kWh' } } },
+          { name: 'invert_power', selector: { boolean: {} } },
+        ],
+      },
+      { name: 'charge_today', selector: SENSOR_FILTER },
+      { name: 'discharge_today', selector: SENSOR_FILTER },
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'color', selector: { text: {} } },
+          { name: 'color_discharge', selector: { text: {} } },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'grid',
+    type: 'expandable',
+    title: 'Netz',
+    icon: 'mdi:transmission-tower',
+    schema: [
+      { name: 'power', selector: SENSOR_FILTER },
+      { name: 'invert', selector: { boolean: {} } },
+      { name: 'import_today', selector: SENSOR_FILTER },
+      { name: 'export_today', selector: SENSOR_FILTER },
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'color_import', selector: { text: {} } },
+          { name: 'color_export', selector: { text: {} } },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'home',
+    type: 'expandable',
+    title: 'Haus',
+    icon: 'mdi:home-lightning-bolt',
+    schema: [
+      { name: 'power', selector: SENSOR_FILTER },
+      { name: 'energy_today', selector: SENSOR_FILTER },
+      { name: 'color', selector: { text: {} } },
+    ],
+  },
+  {
+    name: 'autarky',
+    type: 'expandable',
+    title: 'Autarkie',
+    icon: 'mdi:home-percent',
+    schema: [
+      {
+        name: 'mode',
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'power', label: 'Live (aktuelle Leistung)' },
+              { value: 'energy', label: 'Heute (Tagessummen)' },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  {
+    name: '_advanced',
+    type: 'expandable',
+    title: 'Erweitert',
+    icon: 'mdi:tune',
+    schema: [
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'decimals_power', selector: { number: { min: 0, max: 3, step: 1, mode: 'box' } } },
+          { name: 'decimals_energy', selector: { number: { min: 0, max: 3, step: 1, mode: 'box' } } },
+          { name: 'flow_threshold', selector: { number: { min: 0, max: 1000, step: 1, mode: 'box', unit_of_measurement: 'W' } } },
+        ],
+      },
+    ],
+  },
+];
+
+const MPPT_SCHEMA = [
+  {
+    type: 'grid',
+    name: '',
+    schema: [
+      { name: 'name', selector: { text: {} } },
+      { name: 'max', selector: { number: { min: 0, step: 10, mode: 'box', unit_of_measurement: 'W' } } },
+    ],
+  },
+  { name: 'power', selector: SENSOR_FILTER },
+];
+
+const LOAD_SCHEMA = [
+  {
+    type: 'grid',
+    name: '',
+    schema: [
+      { name: 'name', selector: { text: {} } },
+      { name: 'icon', selector: { icon: {} } },
+    ],
+  },
+  { name: 'power', selector: SENSOR_FILTER },
+];
+
+const SUB_LABELS = {
+  name: 'Name',
+  max: 'Max (W)',
+  power: 'Power-Sensor',
+  icon: 'Icon',
+};
+
+class PowerFlowTilesCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+    this._mpptForms = [];
+    this._loadForms = [];
+    this._lastMpptCount = -1;
+    this._lastLoadCount = -1;
+  }
+
+  setConfig(config) {
+    this._config = config ?? {};
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  _formData() {
+    const c = this._config;
+    return {
+      title: c.title ?? '',
+      icon: c.icon ?? 'mdi:home-lightning-bolt-outline',
+      environment: { temperature: c.environment?.temperature ?? '' },
+      solar: {
+        power: c.solar?.power ?? '',
+        energy_today: c.solar?.energy_today ?? '',
+        color: c.solar?.color ?? '',
+      },
+      battery: {
+        power: c.battery?.power ?? '',
+        soc: c.battery?.soc ?? '',
+        capacity_kwh: typeof c.battery?.capacity_kwh === 'number' ? c.battery.capacity_kwh : null,
+        invert_power: c.battery?.invert_power === true,
+        charge_today: c.battery?.charge_today ?? '',
+        discharge_today: c.battery?.discharge_today ?? '',
+        color: c.battery?.color ?? '',
+        color_discharge: c.battery?.color_discharge ?? '',
+      },
+      grid: {
+        power: c.grid?.power ?? '',
+        invert: c.grid?.invert === true,
+        import_today: c.grid?.import_today ?? '',
+        export_today: c.grid?.export_today ?? '',
+        color_import: c.grid?.color_import ?? '',
+        color_export: c.grid?.color_export ?? '',
+      },
+      home: {
+        power: c.home?.power ?? '',
+        energy_today: c.home?.energy_today ?? '',
+        color: c.home?.color ?? '',
+      },
+      autarky: {
+        mode: c.autarky?.mode ?? 'power',
+      },
+      _advanced: {
+        decimals_power: typeof c.decimals_power === 'number' ? c.decimals_power : 2,
+        decimals_energy: typeof c.decimals_energy === 'number' ? c.decimals_energy : 1,
+        flow_threshold: typeof c.flow_threshold === 'number' ? c.flow_threshold : 5,
+      },
+    };
+  }
+
+  _render() {
+    if (!this.shadowRoot) return;
+    if (!this._wrap) this._build();
+    this._mainForm.hass = this._hass;
+    this._mainForm.schema = EDITOR_SCHEMA;
+    this._mainForm.data = this._formData();
+    this._mainForm.computeLabel = (s) => EDITOR_LABELS[s.name] ?? s.name;
+    this._renderMppts();
+    this._renderLoads();
+  }
+
+  _build() {
+    const style = document.createElement('style');
+    style.textContent = `
+      :host { display: block; }
+      .pft-edit { padding: 8px 4px 4px; display: flex; flex-direction: column; gap: 12px; }
+      .pft-edit-section { display: flex; flex-direction: column; gap: 6px; }
+      .pft-edit-h {
+        font-size: 0.9rem; font-weight: 600;
+        color: var(--primary-text-color);
+        display: flex; align-items: center; gap: 6px;
+        padding: 4px 2px 0;
+      }
+      .pft-edit-h ha-icon { --mdc-icon-size: 18px; color: var(--secondary-text-color); }
+      .pft-edit-sub {
+        font-size: 0.78rem;
+        color: var(--secondary-text-color);
+        padding: 0 2px 4px;
+      }
+      .pft-edit-item {
+        position: relative;
+        padding: 10px 12px 8px;
+        border: 1px solid var(--divider-color, rgba(127,127,127,0.25));
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--primary-text-color) 3%, transparent);
+      }
+      .pft-edit-item ha-form { display: block; }
+      .pft-edit-rm {
+        position: absolute; top: 4px; right: 4px;
+        appearance: none; border: none; background: transparent;
+        color: var(--secondary-text-color);
+        font-size: 1.4rem; line-height: 1;
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .pft-edit-rm:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+      .pft-edit-add {
+        appearance: none;
+        background: color-mix(in srgb, var(--primary-color, #03a9f4) 12%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--primary-color, #03a9f4) 40%, transparent);
+        color: var(--primary-color, #03a9f4);
+        font: inherit; font-weight: 600;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: center;
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+      .pft-edit-add:hover {
+        background: color-mix(in srgb, var(--primary-color, #03a9f4) 22%, transparent);
+        border-style: solid;
+      }
+      .pft-edit-hint {
+        margin-top: 4px;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        color: var(--secondary-text-color);
+        background: rgba(127,127,127,0.08);
+        border-left: 3px solid var(--primary-color, #03a9f4);
+        border-radius: 4px;
+      }
+      .pft-edit-hint code {
+        background: rgba(127,127,127,0.18);
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 0.76rem;
+      }
+    `;
+    const wrap = document.createElement('div');
+    wrap.className = 'pft-edit';
+
+    this._mainForm = document.createElement('ha-form');
+    this._mainForm.addEventListener('value-changed', (ev) => this._onMainChange(ev));
+    wrap.appendChild(this._mainForm);
+
+    const mpptSection = document.createElement('div');
+    mpptSection.className = 'pft-edit-section';
+    const mpptH = document.createElement('div');
+    mpptH.className = 'pft-edit-h';
+    const mpptHIc = document.createElement('ha-icon');
+    mpptHIc.setAttribute('icon', 'mdi:solar-panel');
+    const mpptHTxt = document.createElement('span');
+    mpptHTxt.textContent = 'PV-Strings (MPPTs)';
+    mpptH.appendChild(mpptHIc);
+    mpptH.appendChild(mpptHTxt);
+    const mpptSub = document.createElement('div');
+    mpptSub.className = 'pft-edit-sub';
+    mpptSub.textContent = 'Pro String: Name, Maximalleistung und Power-Sensor. Beliebig viele.';
+    this._mpptsList = document.createElement('div');
+    this._mpptsList.className = 'pft-edit-section';
+    this._mpptsAdd = document.createElement('button');
+    this._mpptsAdd.type = 'button';
+    this._mpptsAdd.className = 'pft-edit-add';
+    this._mpptsAdd.textContent = '+ String hinzufügen';
+    this._mpptsAdd.addEventListener('click', () => this._addMppt());
+    mpptSection.appendChild(mpptH);
+    mpptSection.appendChild(mpptSub);
+    mpptSection.appendChild(this._mpptsList);
+    mpptSection.appendChild(this._mpptsAdd);
+    wrap.appendChild(mpptSection);
+
+    const loadSection = document.createElement('div');
+    loadSection.className = 'pft-edit-section';
+    const loadH = document.createElement('div');
+    loadH.className = 'pft-edit-h';
+    const loadHIc = document.createElement('ha-icon');
+    loadHIc.setAttribute('icon', 'mdi:flash');
+    const loadHTxt = document.createElement('span');
+    loadHTxt.textContent = 'Zusatz-Verbraucher (Loads)';
+    loadH.appendChild(loadHIc);
+    loadH.appendChild(loadHTxt);
+    const loadSub = document.createElement('div');
+    loadSub.className = 'pft-edit-sub';
+    loadSub.textContent = 'Mini-Tiles unter dem Haus (Wallbox, Wärmepumpe etc.). Pro Eintrag: Name, Icon, Sensor.';
+    this._loadsList = document.createElement('div');
+    this._loadsList.className = 'pft-edit-section';
+    this._loadsAdd = document.createElement('button');
+    this._loadsAdd.type = 'button';
+    this._loadsAdd.className = 'pft-edit-add';
+    this._loadsAdd.textContent = '+ Verbraucher hinzufügen';
+    this._loadsAdd.addEventListener('click', () => this._addLoad());
+    loadSection.appendChild(loadH);
+    loadSection.appendChild(loadSub);
+    loadSection.appendChild(this._loadsList);
+    loadSection.appendChild(this._loadsAdd);
+    wrap.appendChild(loadSection);
+
+    const hint = document.createElement('div');
+    hint.className = 'pft-edit-hint';
+    hint.innerHTML =
+      'Tipp: Wenn die Flow-Animation falsch herum läuft (z.&nbsp;B. „Akku entlädt obwohl er lädt"), den jeweiligen ' +
+      '<code>Vorzeichen invertieren</code>-Schalter umlegen.';
+    wrap.appendChild(hint);
+
+    this.shadowRoot.appendChild(style);
+    this.shadowRoot.appendChild(wrap);
+    this._wrap = wrap;
+  }
+
+  _renderMppts() {
+    const mppts = this._config.solar?.mppts ?? [];
+    const computeLabel = (s) => SUB_LABELS[s.name] ?? s.name;
+    if (mppts.length !== this._lastMpptCount) {
+      this._lastMpptCount = mppts.length;
+      this._mpptsList.innerHTML = '';
+      this._mpptForms = [];
+      mppts.forEach((m, idx) => {
+        const item = document.createElement('div');
+        item.className = 'pft-edit-item';
+        const form = document.createElement('ha-form');
+        form.computeLabel = computeLabel;
+        form.addEventListener('value-changed', (ev) => this._onMpptChange(idx, ev));
+        item.appendChild(form);
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'pft-edit-rm';
+        rm.title = 'Entfernen';
+        rm.innerHTML = '&times;';
+        rm.addEventListener('click', () => this._removeMppt(idx));
+        item.appendChild(rm);
+        this._mpptsList.appendChild(item);
+        this._mpptForms.push(form);
+      });
+    }
+    mppts.forEach((m, idx) => {
+      const form = this._mpptForms[idx];
+      if (!form) return;
+      form.hass = this._hass;
+      form.schema = MPPT_SCHEMA;
+      const data = {
+        name: m.name ?? '',
+        max: typeof m.max === 'number' ? m.max : (typeof m.max_power === 'number' ? m.max_power : null),
+        power: m.power ?? '',
+      };
+      if (JSON.stringify(form.data) !== JSON.stringify(data)) {
+        form.data = data;
+      }
+    });
+  }
+
+  _renderLoads() {
+    const loads = this._config.home?.loads ?? [];
+    const computeLabel = (s) => SUB_LABELS[s.name] ?? s.name;
+    if (loads.length !== this._lastLoadCount) {
+      this._lastLoadCount = loads.length;
+      this._loadsList.innerHTML = '';
+      this._loadForms = [];
+      loads.forEach((l, idx) => {
+        const item = document.createElement('div');
+        item.className = 'pft-edit-item';
+        const form = document.createElement('ha-form');
+        form.computeLabel = computeLabel;
+        form.addEventListener('value-changed', (ev) => this._onLoadChange(idx, ev));
+        item.appendChild(form);
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'pft-edit-rm';
+        rm.title = 'Entfernen';
+        rm.innerHTML = '&times;';
+        rm.addEventListener('click', () => this._removeLoad(idx));
+        item.appendChild(rm);
+        this._loadsList.appendChild(item);
+        this._loadForms.push(form);
+      });
+    }
+    loads.forEach((l, idx) => {
+      const form = this._loadForms[idx];
+      if (!form) return;
+      form.hass = this._hass;
+      form.schema = LOAD_SCHEMA;
+      const data = {
+        name: l.name ?? '',
+        icon: l.icon ?? '',
+        power: l.power ?? '',
+      };
+      if (JSON.stringify(form.data) !== JSON.stringify(data)) {
+        form.data = data;
+      }
+    });
+  }
+
+  _addMppt() {
+    const solar = { ...(this._config.solar ?? {}) };
+    solar.mppts = [...(solar.mppts ?? []), { name: '', power: '', max: 420 }];
+    this._config = { ...this._config, solar };
+    this._dispatchChange();
+    this._render();
+  }
+
+  _removeMppt(idx) {
+    const solar = { ...(this._config.solar ?? {}) };
+    solar.mppts = (solar.mppts ?? []).filter((_, i) => i !== idx);
+    if (!solar.mppts.length) delete solar.mppts;
+    this._config = { ...this._config, solar };
+    if (!Object.keys(this._config.solar ?? {}).length) {
+      const next = { ...this._config };
+      delete next.solar;
+      this._config = next;
+    }
+    this._dispatchChange();
+    this._render();
+  }
+
+  _onMpptChange(idx, ev) {
+    ev.stopPropagation();
+    const v = ev.detail?.value ?? {};
+    const solar = { ...(this._config.solar ?? {}) };
+    const mppts = [...(solar.mppts ?? [])];
+    const entry = { ...(mppts[idx] ?? {}) };
+    if (v.name) entry.name = v.name; else delete entry.name;
+    if (v.power) entry.power = v.power; else delete entry.power;
+    if (typeof v.max === 'number' && v.max > 0) entry.max = v.max; else delete entry.max;
+    delete entry.max_power;
+    mppts[idx] = entry;
+    solar.mppts = mppts;
+    this._config = { ...this._config, solar };
+    this._dispatchChange();
+  }
+
+  _addLoad() {
+    const home = { ...(this._config.home ?? {}) };
+    home.loads = [...(home.loads ?? []), { name: '', icon: 'mdi:flash', power: '' }];
+    this._config = { ...this._config, home };
+    this._dispatchChange();
+    this._render();
+  }
+
+  _removeLoad(idx) {
+    const home = { ...(this._config.home ?? {}) };
+    home.loads = (home.loads ?? []).filter((_, i) => i !== idx);
+    if (!home.loads.length) delete home.loads;
+    this._config = { ...this._config, home };
+    if (!Object.keys(this._config.home ?? {}).length) {
+      const next = { ...this._config };
+      delete next.home;
+      this._config = next;
+    }
+    this._dispatchChange();
+    this._render();
+  }
+
+  _onLoadChange(idx, ev) {
+    ev.stopPropagation();
+    const v = ev.detail?.value ?? {};
+    const home = { ...(this._config.home ?? {}) };
+    const loads = [...(home.loads ?? [])];
+    const entry = { ...(loads[idx] ?? {}) };
+    if (v.name) entry.name = v.name; else delete entry.name;
+    if (v.icon) entry.icon = v.icon; else delete entry.icon;
+    if (v.power) entry.power = v.power; else delete entry.power;
+    loads[idx] = entry;
+    home.loads = loads;
+    this._config = { ...this._config, home };
+    this._dispatchChange();
+  }
+
+  _onMainChange(ev) {
+    ev.stopPropagation();
+    const v = ev.detail?.value ?? {};
+    const next = { ...this._config };
+
+    if (v.title) next.title = v.title; else delete next.title;
+    if (v.icon && v.icon !== 'mdi:home-lightning-bolt-outline') next.icon = v.icon; else delete next.icon;
+
+    const envTemp = v.environment?.temperature;
+    if (envTemp) next.environment = { temperature: envTemp };
+    else delete next.environment;
+
+    const solar = { ...(next.solar ?? {}) };
+    const vs = v.solar ?? {};
+    ['power', 'energy_today', 'color'].forEach((k) => {
+      if (vs[k]) solar[k] = vs[k]; else delete solar[k];
+    });
+    if (Object.keys(solar).length) next.solar = solar; else delete next.solar;
+
+    const battery = {};
+    const vb = v.battery ?? {};
+    ['power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
+      if (vb[k]) battery[k] = vb[k];
+    });
+    if (typeof vb.capacity_kwh === 'number' && vb.capacity_kwh > 0) battery.capacity_kwh = vb.capacity_kwh;
+    if (vb.invert_power === true) battery.invert_power = true;
+    if (Object.keys(battery).length) next.battery = battery; else delete next.battery;
+
+    const grid = {};
+    const vg = v.grid ?? {};
+    ['power', 'import_today', 'export_today', 'color_import', 'color_export'].forEach((k) => {
+      if (vg[k]) grid[k] = vg[k];
+    });
+    if (vg.invert === true) grid.invert = true;
+    if (Object.keys(grid).length) next.grid = grid; else delete next.grid;
+
+    const home = { ...(next.home ?? {}) };
+    const vh = v.home ?? {};
+    ['power', 'energy_today', 'color'].forEach((k) => {
+      if (vh[k]) home[k] = vh[k]; else delete home[k];
+    });
+    if (Object.keys(home).filter((k) => k !== 'loads').length || (home.loads && home.loads.length)) {
+      next.home = home;
+    } else {
+      delete next.home;
+    }
+
+    if (v.autarky?.mode && v.autarky.mode !== 'power') next.autarky = { mode: v.autarky.mode };
+    else delete next.autarky;
+
+    const adv = v._advanced ?? {};
+    if (typeof adv.decimals_power === 'number' && adv.decimals_power !== 2) next.decimals_power = adv.decimals_power;
+    else delete next.decimals_power;
+    if (typeof adv.decimals_energy === 'number' && adv.decimals_energy !== 1) next.decimals_energy = adv.decimals_energy;
+    else delete next.decimals_energy;
+    if (typeof adv.flow_threshold === 'number' && adv.flow_threshold !== 5) next.flow_threshold = adv.flow_threshold;
+    else delete next.flow_threshold;
+
+    this._config = next;
+    this._dispatchChange();
+  }
+
+  _dispatchChange() {
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this._config },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+}
+
+if (!customElements.get('power-flow-tiles-card-editor')) {
+  customElements.define('power-flow-tiles-card-editor', PowerFlowTilesCardEditor);
 }
 
 if (!customElements.get('power-flow-tiles-card')) {

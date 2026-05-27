@@ -4,15 +4,24 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.1.0 — Prototyp. YAML-Konfiguration. Visueller Editor folgt.
+v0.2.0 — Prototyp mit visuellem Editor.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.1.0`
+   - URL: `/local/power-flow-tiles-card.js?v=0.2.0`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
+
+## Visueller Editor
+
+Beim Hinzufügen der Karte im Dashboard ist der **visuelle Editor** der Default:
+- Top-Felder: Titel, Icon
+- Aufklappbare Sektionen: Umgebung, Solar, Akku, Netz, Haus, Autarkie, Erweitert
+- **PV-Strings** und **Verbraucher** als dynamische Listen mit Add/Remove
+- Farben werden als CSS-Farbtext eingegeben (z. B. `#f5a524`, `rgba(...)` oder HA-Theme-Variablen wie `var(--primary-color)`)
+- Tiefere YAML-Eingriffe weiterhin über *„Code-Editor anzeigen"*
 
 ## Konfig-Beispiel (deine Setup)
 
@@ -167,7 +176,7 @@ Jedes Tile öffnet bei Klick den HA-„Weitere Infos"-Dialog der jeweils nahelie
 
 ## Roadmap
 
-- [ ] Visueller Editor
+- [x] Visueller Editor
 - [ ] Optionaler zweiter Akku
 - [ ] Optionale Inverter-Status-Zeile
 - [ ] Mehr Layout-Varianten (vertical stack, wide)
