@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.4.1';
+const PFT_VERSION = '0.4.2';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -338,7 +338,7 @@ class PowerFlowTilesCard extends HTMLElement {
 
     const shape = document.createElementNS(svgNS, 'path');
     shape.setAttribute('class', 'pft-solar-arc-shape');
-    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 -8 10 60 Z');
+    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 -12 10 60 Z');
     svg.appendChild(shape);
 
     const ground = document.createElementNS(svgNS, 'line');
@@ -1013,11 +1013,11 @@ class PowerFlowTilesCard extends HTMLElement {
         overflow: visible;
       }
       .pft-solar-arc-shape {
-        fill: color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 25%, #fff2a8);
-        opacity: 0.85;
+        fill: #ff4d6a;
+        opacity: 0.88;
         filter:
-          drop-shadow(0 0 5px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 45%, transparent))
-          drop-shadow(0 0 12px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 22%, transparent));
+          drop-shadow(0 0 5px #ff4d6a)
+          drop-shadow(0 0 12px color-mix(in srgb, #ff4d6a 40%, transparent));
         transition: opacity 400ms ease;
       }
       .pft-solar-arc-night .pft-solar-arc-shape {
