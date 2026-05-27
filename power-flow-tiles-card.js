@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.3.0';
+const PFT_VERSION = '0.4.0';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -51,6 +51,19 @@ function fmtEnergy(kwh, decimals = 1) {
 function fmtTemp(c, decimals = 1) {
   if (c === null) return '–';
   return `${c.toFixed(decimals)} °C`;
+}
+
+function fmtClock(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) return '–';
+  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function fmtDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '–';
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}h ${m}m`;
 }
 
 function svgPath(from, to) {
@@ -194,6 +207,10 @@ class PowerFlowTilesCard extends HTMLElement {
     card.className = 'pft-card';
 
     card.appendChild(this._buildHeader());
+    if (this._config.solar.show_sun_arc) {
+      const arcEl = this._buildSolarArc();
+      if (arcEl) card.appendChild(arcEl);
+    }
     card.appendChild(this._buildStage());
     const mpptsEl = this._buildMppts();
     if (mpptsEl) card.appendChild(mpptsEl);
@@ -251,6 +268,153 @@ class PowerFlowTilesCard extends HTMLElement {
     h.appendChild(left);
     h.appendChild(right);
     return h;
+  }
+
+  _buildSolarArc() {
+    const wrap = document.createElement('div');
+    wrap.className = 'pft-solar-arc';
+    wrap.style.setProperty('--pft-solar-color', this._config.solar.color);
+
+    const top = document.createElement('div');
+    top.className = 'pft-solar-arc-top';
+
+    const rise = document.createElement('span');
+    rise.className = 'pft-solar-arc-rise';
+    const riseIc = document.createElement('ha-icon');
+    riseIc.setAttribute('icon', 'mdi:weather-sunset-up');
+    const riseTxt = document.createElement('span');
+    rise.appendChild(riseIc);
+    rise.appendChild(riseTxt);
+
+    const progress = document.createElement('span');
+    progress.className = 'pft-solar-arc-progress';
+    const progressTxt = document.createElement('span');
+    progress.appendChild(progressTxt);
+
+    const set = document.createElement('span');
+    set.className = 'pft-solar-arc-set';
+    const setTxt = document.createElement('span');
+    const setIc = document.createElement('ha-icon');
+    setIc.setAttribute('icon', 'mdi:weather-sunset-down');
+    set.appendChild(setTxt);
+    set.appendChild(setIc);
+
+    top.appendChild(rise);
+    top.appendChild(progress);
+    top.appendChild(set);
+    wrap.appendChild(top);
+
+    const dur = document.createElement('div');
+    dur.className = 'pft-solar-arc-dur';
+
+    const dayD = document.createElement('span');
+    dayD.className = 'pft-solar-arc-day';
+    const dayIc = document.createElement('ha-icon');
+    dayIc.setAttribute('icon', 'mdi:weather-sunny');
+    const dayTxt = document.createElement('span');
+    dayD.appendChild(dayIc);
+    dayD.appendChild(dayTxt);
+
+    const nightD = document.createElement('span');
+    nightD.className = 'pft-solar-arc-night-dur';
+    const nightIc = document.createElement('ha-icon');
+    nightIc.setAttribute('icon', 'mdi:weather-night');
+    const nightTxt = document.createElement('span');
+    nightD.appendChild(nightIc);
+    nightD.appendChild(nightTxt);
+
+    dur.appendChild(dayD);
+    dur.appendChild(nightD);
+    wrap.appendChild(dur);
+
+    const stage = document.createElement('div');
+    stage.className = 'pft-solar-arc-stage';
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'pft-solar-arc-svg');
+    svg.setAttribute('viewBox', '0 0 200 70');
+    svg.setAttribute('preserveAspectRatio', 'none');
+
+    const shape = document.createElementNS(svgNS, 'path');
+    shape.setAttribute('class', 'pft-solar-arc-shape');
+    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 28 10 60 Z');
+    svg.appendChild(shape);
+
+    const ground = document.createElementNS(svgNS, 'line');
+    ground.setAttribute('class', 'pft-solar-arc-ground');
+    ground.setAttribute('x1', '6');
+    ground.setAttribute('y1', '60');
+    ground.setAttribute('x2', '194');
+    ground.setAttribute('y2', '60');
+    svg.appendChild(ground);
+
+    const mkRise = document.createElementNS(svgNS, 'circle');
+    mkRise.setAttribute('class', 'pft-solar-arc-marker');
+    mkRise.setAttribute('cx', '10');
+    mkRise.setAttribute('cy', '60');
+    mkRise.setAttribute('r', '2.5');
+    svg.appendChild(mkRise);
+
+    const mkNoon = document.createElementNS(svgNS, 'circle');
+    mkNoon.setAttribute('class', 'pft-solar-arc-marker pft-solar-arc-marker-noon');
+    mkNoon.setAttribute('cx', '100');
+    mkNoon.setAttribute('cy', '60');
+    mkNoon.setAttribute('r', '1.5');
+    svg.appendChild(mkNoon);
+
+    const mkSet = document.createElementNS(svgNS, 'circle');
+    mkSet.setAttribute('class', 'pft-solar-arc-marker');
+    mkSet.setAttribute('cx', '190');
+    mkSet.setAttribute('cy', '60');
+    mkSet.setAttribute('r', '2.5');
+    svg.appendChild(mkSet);
+
+    const sun = document.createElementNS(svgNS, 'circle');
+    sun.setAttribute('class', 'pft-solar-arc-sun');
+    sun.setAttribute('r', '4');
+    sun.setAttribute('cx', '10');
+    sun.setAttribute('cy', '60');
+    svg.appendChild(sun);
+
+    stage.appendChild(svg);
+
+    const pill = document.createElement('div');
+    pill.className = 'pft-solar-arc-power-pill';
+    const pillTxt = document.createElement('span');
+    const pillIc = document.createElement('ha-icon');
+    pillIc.setAttribute('icon', 'mdi:flash');
+    pill.appendChild(pillTxt);
+    pill.appendChild(pillIc);
+    pill.style.opacity = '0';
+    stage.appendChild(pill);
+
+    const times = document.createElement('div');
+    times.className = 'pft-solar-arc-times';
+    const tRise = document.createElement('span');
+    tRise.style.left = '5%';
+    const tNoon = document.createElement('span');
+    tNoon.style.left = '50%';
+    tNoon.textContent = '12:00';
+    const tSet = document.createElement('span');
+    tSet.style.left = '95%';
+    times.appendChild(tRise);
+    times.appendChild(tNoon);
+    times.appendChild(tSet);
+    stage.appendChild(times);
+
+    wrap.appendChild(stage);
+
+    this._els.solarArc = {
+      wrap,
+      riseTxt, setTxt, progressTxt,
+      dayTxt, nightTxt,
+      svg, sun, shape,
+      pill, pillTxt,
+      tRise, tSet,
+    };
+
+    return wrap;
   }
 
   _buildStage() {
@@ -346,27 +510,6 @@ class PowerFlowTilesCard extends HTMLElement {
   _buildTile(key, icon, label) {
     const t = document.createElement('div');
     t.className = `pft-tile pft-tile-${key}`;
-    if (key === 'pv' && this._config.solar.show_sun_arc) {
-      const svgNS = 'http://www.w3.org/2000/svg';
-      const arcSvg = document.createElementNS(svgNS, 'svg');
-      arcSvg.setAttribute('class', 'pft-sun-arc');
-      arcSvg.setAttribute('viewBox', '0 0 100 40');
-      arcSvg.setAttribute('preserveAspectRatio', 'none');
-      const arcPath = document.createElementNS(svgNS, 'path');
-      arcPath.setAttribute('class', 'pft-sun-arc-path');
-      arcPath.setAttribute('d', 'M 8 32 Q 50 -6 92 32');
-      arcPath.setAttribute('fill', 'none');
-      arcPath.setAttribute('vector-effect', 'non-scaling-stroke');
-      arcSvg.appendChild(arcPath);
-      const sunMark = document.createElementNS(svgNS, 'circle');
-      sunMark.setAttribute('class', 'pft-sun-mark');
-      sunMark.setAttribute('r', '3');
-      sunMark.setAttribute('cx', '8');
-      sunMark.setAttribute('cy', '32');
-      arcSvg.appendChild(sunMark);
-      t.appendChild(arcSvg);
-      this._els.sunArc = { svg: arcSvg, path: arcPath, sun: sunMark };
-    }
     const head = document.createElement('div');
     head.className = 'pft-tile-head';
     const ic = document.createElement('ha-icon');
@@ -587,17 +730,21 @@ class PowerFlowTilesCard extends HTMLElement {
   }
 
   _updateSunArc() {
-    if (!this._els.sunArc) return;
+    const els = this._els.solarArc;
+    if (!els) return;
     const entityId = this._config.solar.sun_entity || 'sun.sun';
     const sunState = this._hass?.states?.[entityId];
-    let t = null;
     const attr = sunState?.attributes;
+
+    let todayRise = null;
+    let todaySet = null;
+    let isDaytime = false;
+    let t = null;
+
     if (attr && attr.next_rising && attr.next_setting) {
       const nextRise = new Date(attr.next_rising).getTime();
       const nextSet = new Date(attr.next_setting).getTime();
       const now = Date.now();
-      let todayRise;
-      let todaySet;
       if (nextSet < nextRise) {
         todaySet = nextSet;
         todayRise = nextRise - 86400000;
@@ -605,29 +752,58 @@ class PowerFlowTilesCard extends HTMLElement {
         todayRise = nextRise;
         todaySet = nextSet - 86400000;
       }
-      if (now >= todayRise && now <= todaySet && todaySet > todayRise) {
-        t = (now - todayRise) / (todaySet - todayRise);
+      if (todaySet > todayRise) {
+        if (now >= todayRise && now <= todaySet) {
+          isDaytime = true;
+          t = (now - todayRise) / (todaySet - todayRise);
+        }
       }
     }
-    const els = this._els.sunArc;
-    if (t === null) {
-      els.svg.classList.add('pft-sun-arc-night');
-      els.sun.style.opacity = '0';
+
+    els.riseTxt.textContent = todayRise !== null ? ` ${fmtClock(new Date(todayRise))} Aufgang` : ' – Aufgang';
+    els.setTxt.textContent = todaySet !== null ? `Untergang ${fmtClock(new Date(todaySet))} ` : 'Untergang – ';
+    els.tRise.textContent = todayRise !== null ? fmtClock(new Date(todayRise)) : '';
+    els.tSet.textContent = todaySet !== null ? fmtClock(new Date(todaySet)) : '';
+
+    const dayMs = (todayRise !== null && todaySet !== null) ? (todaySet - todayRise) : null;
+    const nightMs = dayMs !== null ? (86400000 - dayMs) : null;
+    els.dayTxt.textContent = dayMs !== null ? ` Tag: ${fmtDuration(dayMs)}` : ' Tag: –';
+    els.nightTxt.textContent = nightMs !== null ? ` Nacht: ${fmtDuration(nightMs)}` : ' Nacht: –';
+
+    if (t !== null) {
+      els.progressTxt.innerHTML = `<strong>${Math.round(t * 100)}%</strong> des Tages`;
     } else {
-      els.svg.classList.remove('pft-sun-arc-night');
+      els.progressTxt.textContent = isDaytime ? '' : 'Nacht';
+    }
+
+    if (isDaytime && t !== null) {
+      els.svg.classList.remove('pft-solar-arc-night');
       const tc = Math.max(0, Math.min(1, t));
-      const x0 = 8;
-      const cx = 50;
-      const x1 = 92;
-      const y0 = 32;
-      const cy = -6;
-      const y1 = 32;
       const u = 1 - tc;
-      const bx = u * u * x0 + 2 * u * tc * cx + tc * tc * x1;
-      const by = u * u * y0 + 2 * u * tc * cy + tc * tc * y1;
+      const bx = u * u * 10 + 2 * u * tc * 100 + tc * tc * 190;
+      const by = u * u * 60 + 2 * u * tc * (-22) + tc * tc * 60;
       els.sun.setAttribute('cx', bx.toFixed(2));
       els.sun.setAttribute('cy', by.toFixed(2));
       els.sun.style.opacity = '1';
+
+      const solarPower = this._getNum(this._config.solar.power);
+      if (solarPower !== null && solarPower > (this._config.flow_threshold ?? 5)) {
+        const pillText = solarPower >= 1000
+          ? `${(solarPower / 1000).toFixed(this._config.decimals_power ?? 2)} kW`
+          : `${Math.round(solarPower)} W`;
+        els.pillTxt.textContent = pillText;
+        const leftPct = (bx / 200) * 100;
+        const topPct = (by / 70) * 100;
+        els.pill.style.left = `${leftPct.toFixed(2)}%`;
+        els.pill.style.top = `${topPct.toFixed(2)}%`;
+        els.pill.style.opacity = '1';
+      } else {
+        els.pill.style.opacity = '0';
+      }
+    } else {
+      els.svg.classList.add('pft-solar-arc-night');
+      els.sun.style.opacity = '0';
+      els.pill.style.opacity = '0';
     }
   }
 
@@ -796,36 +972,139 @@ class PowerFlowTilesCard extends HTMLElement {
         white-space: nowrap;
       }
 
-      .pft-sun-arc {
+      .pft-solar-arc {
+        margin-bottom: 10px;
+        padding: 8px 10px 6px;
+        border-radius: 14px;
+        background:
+          radial-gradient(120% 100% at 50% 0%,
+            color-mix(in srgb, ${DEFAULT_COLORS.solar} 18%, transparent) 0%,
+            transparent 65%),
+          color-mix(in srgb, var(--primary-text-color) 4%, transparent);
+        border: 1px solid color-mix(in srgb, ${DEFAULT_COLORS.solar} 18%, rgba(127,127,127,0.18));
+      }
+      .pft-solar-arc-top {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: var(--secondary-text-color);
+      }
+      .pft-solar-arc-top strong {
+        color: var(--primary-text-color);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .pft-solar-arc-rise, .pft-solar-arc-set, .pft-solar-arc-progress {
+        display: inline-flex; align-items: center; gap: 4px;
+        white-space: nowrap;
+      }
+      .pft-solar-arc-rise ha-icon, .pft-solar-arc-set ha-icon {
+        --mdc-icon-size: 14px;
+        color: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
+      }
+      .pft-solar-arc-progress {
+        color: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
+        font-weight: 600;
+      }
+      .pft-solar-arc-progress strong { color: var(--pft-solar-color, ${DEFAULT_COLORS.solar}); }
+      .pft-solar-arc-dur {
+        display: flex; justify-content: space-between;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .pft-solar-arc-day, .pft-solar-arc-night-dur {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary-text-color) 7%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary-text-color) 10%, transparent);
+        font-size: 0.74rem; font-weight: 600;
+        color: var(--primary-text-color);
+        font-variant-numeric: tabular-nums;
+      }
+      .pft-solar-arc-day ha-icon, .pft-solar-arc-night-dur ha-icon {
+        --mdc-icon-size: 14px;
+      }
+      .pft-solar-arc-day ha-icon { color: var(--pft-solar-color, ${DEFAULT_COLORS.solar}); }
+      .pft-solar-arc-night-dur ha-icon { color: color-mix(in srgb, var(--secondary-text-color) 80%, transparent); }
+      .pft-solar-arc-stage {
+        position: relative;
+        height: 100px;
+        margin-top: 8px;
+        margin-bottom: 18px;
+      }
+      .pft-solar-arc-svg {
         position: absolute;
-        top: 6px;
-        left: 6px;
-        right: 6px;
-        height: 40%;
-        max-height: 36px;
-        pointer-events: none;
-        opacity: 0.85;
-        z-index: 0;
+        inset: 0;
+        width: 100%; height: 100%;
+        overflow: visible;
       }
-      .pft-sun-arc-path {
-        stroke: color-mix(in srgb, var(--pft-tile-accent, ${DEFAULT_COLORS.solar}) 55%, transparent);
+      .pft-solar-arc-shape {
+        fill: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
+        opacity: 0.78;
+        filter:
+          drop-shadow(0 0 6px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 50%, transparent))
+          drop-shadow(0 0 14px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 25%, transparent));
+        transition: opacity 400ms ease;
+      }
+      .pft-solar-arc-night .pft-solar-arc-shape {
+        opacity: 0.18;
+        filter: none;
+      }
+      .pft-solar-arc-ground {
+        stroke: color-mix(in srgb, var(--primary-text-color) 30%, transparent);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+      }
+      .pft-solar-arc-marker {
+        fill: color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 75%, var(--primary-text-color));
+      }
+      .pft-solar-arc-marker-noon {
+        fill: color-mix(in srgb, var(--primary-text-color) 35%, transparent);
+      }
+      .pft-solar-arc-sun {
+        fill: #fff8d6;
+        stroke: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
         stroke-width: 1.2;
-        stroke-linecap: round;
-        stroke-dasharray: 2 3;
-        fill: none;
-      }
-      .pft-sun-arc-night .pft-sun-arc-path {
-        stroke: color-mix(in srgb, var(--secondary-text-color) 30%, transparent);
-        stroke-dasharray: 1 4;
-        opacity: 0.5;
-      }
-      .pft-sun-mark {
-        fill: var(--pft-tile-accent, ${DEFAULT_COLORS.solar});
-        filter: drop-shadow(0 0 3px color-mix(in srgb, var(--pft-tile-accent, ${DEFAULT_COLORS.solar}) 85%, transparent))
-                drop-shadow(0 0 6px color-mix(in srgb, var(--pft-tile-accent, ${DEFAULT_COLORS.solar}) 45%, transparent));
+        vector-effect: non-scaling-stroke;
+        filter:
+          drop-shadow(0 0 4px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 95%, transparent))
+          drop-shadow(0 0 10px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 55%, transparent));
         transition: cx 1.2s ease-out, cy 1.2s ease-out, opacity 400ms ease;
       }
-      .pft-tile-pv > *:not(.pft-sun-arc) { position: relative; z-index: 1; }
+      .pft-solar-arc-power-pill {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        margin-top: -6px;
+        background: var(--pft-solar-color, ${DEFAULT_COLORS.solar});
+        color: #fff;
+        padding: 3px 9px 3px 8px;
+        border-radius: 999px;
+        font-size: 0.78rem; font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        display: inline-flex; align-items: center; gap: 4px;
+        box-shadow:
+          0 2px 6px rgba(0,0,0,0.25),
+          0 0 10px color-mix(in srgb, var(--pft-solar-color, ${DEFAULT_COLORS.solar}) 55%, transparent);
+        transition: left 1.2s ease-out, top 1.2s ease-out, opacity 400ms ease;
+        pointer-events: none;
+      }
+      .pft-solar-arc-power-pill ha-icon { --mdc-icon-size: 12px; }
+      .pft-solar-arc-times {
+        position: absolute;
+        left: 0; right: 0;
+        top: calc(100% + 2px);
+        font-size: 0.66rem;
+        color: var(--secondary-text-color);
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
+        height: 14px;
+      }
+      .pft-solar-arc-times span {
+        position: absolute;
+        transform: translateX(-50%);
+      }
 
       .pft-hub {
         position: absolute;
