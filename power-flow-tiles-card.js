@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.4.2';
+const PFT_VERSION = '0.4.3';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -338,7 +338,7 @@ class PowerFlowTilesCard extends HTMLElement {
 
     const shape = document.createElementNS(svgNS, 'path');
     shape.setAttribute('class', 'pft-solar-arc-shape');
-    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 -12 10 60 Z');
+    shape.setAttribute('d', 'M 10 60 Q 100 -22 190 60 Q 100 -16 10 60 Z');
     svg.appendChild(shape);
 
     const ground = document.createElementNS(svgNS, 'line');
