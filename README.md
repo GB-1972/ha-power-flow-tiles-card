@@ -2,6 +2,8 @@
 
 Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/Haus-Stromflüsse — ohne Schaltplan-Look. Vier Eck-Tiles, zentraler Akku-Hub mit SOC-Donut, animierte Flow-Pfade dazwischen. Vanilla JS, keine Build-Pipeline.
 
+![Power Flow Tiles Card screenshot](screenshot.png)
+
 ## Status
 
 v0.2.0 — Prototyp mit visuellem Editor.
