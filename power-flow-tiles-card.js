@@ -1277,7 +1277,7 @@ const EDITOR_LABELS = {
   flow_threshold: 'Flow-Schwelle (W)',
   name: 'Name',
   max: 'Max (W)',
-  show_sun_arc: 'Sonnenverlauf im PV-Tile',
+  show_sun_arc: 'Sonnenverlauf-Bereich anzeigen',
   sun_entity: 'Sonne-Entity',
 };
 
@@ -1313,14 +1313,16 @@ const EDITOR_SCHEMA = [
       { name: 'power', selector: SENSOR_FILTER },
       { name: 'energy_today', selector: SENSOR_FILTER },
       { name: 'color', selector: { text: {} } },
-      {
-        type: 'grid',
-        name: '',
-        schema: [
-          { name: 'show_sun_arc', selector: { boolean: {} } },
-          { name: 'sun_entity', selector: SUN_FILTER },
-        ],
-      },
+    ],
+  },
+  {
+    name: '_sun_arc',
+    type: 'expandable',
+    title: 'Sonnenverlauf',
+    icon: 'mdi:weather-sunny',
+    schema: [
+      { name: 'show_sun_arc', selector: { boolean: {} } },
+      { name: 'sun_entity', selector: SUN_FILTER },
     ],
   },
   {
@@ -1483,6 +1485,8 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         power: c.solar?.power ?? '',
         energy_today: c.solar?.energy_today ?? '',
         color: c.solar?.color ?? '',
+      },
+      _sun_arc: {
         show_sun_arc: c.solar?.show_sun_arc !== false,
         sun_entity: c.solar?.sun_entity ?? '',
       },
@@ -1845,9 +1849,10 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     ['power', 'energy_today', 'color'].forEach((k) => {
       if (vs[k]) solar[k] = vs[k]; else delete solar[k];
     });
-    if (vs.show_sun_arc === false) solar.show_sun_arc = false;
+    const vsa = v._sun_arc ?? {};
+    if (vsa.show_sun_arc === false) solar.show_sun_arc = false;
     else delete solar.show_sun_arc;
-    if (vs.sun_entity && vs.sun_entity !== 'sun.sun') solar.sun_entity = vs.sun_entity;
+    if (vsa.sun_entity && vsa.sun_entity !== 'sun.sun') solar.sun_entity = vsa.sun_entity;
     else delete solar.sun_entity;
     const solarKeysToKeep = Object.keys(solar).filter((k) => k !== 'mppts');
     if (solarKeysToKeep.length || (solar.mppts && solar.mppts.length)) next.solar = solar;
