@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.0';
+const PFT_VERSION = '0.5.1';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -569,29 +569,43 @@ class PowerFlowTilesCard extends HTMLElement {
     let sub;
     let main2 = null;
     let sub2 = null;
+    let col1Ic = null;
+    let col1Soc = null;
+    let col2Ic = null;
+    let col2Soc = null;
 
     if (isBatSplit) {
       t.classList.add('pft-tile-battery-split');
       const cols = document.createElement('div');
       cols.className = 'pft-tile-bat-cols';
-      const col1 = document.createElement('div');
-      col1.className = 'pft-tile-bat-col';
-      main = document.createElement('div');
-      main.className = 'pft-tile-main';
-      sub = document.createElement('div');
-      sub.className = 'pft-tile-sub';
-      col1.appendChild(main);
-      col1.appendChild(sub);
-      const col2 = document.createElement('div');
-      col2.className = 'pft-tile-bat-col';
-      main2 = document.createElement('div');
-      main2.className = 'pft-tile-main';
-      sub2 = document.createElement('div');
-      sub2.className = 'pft-tile-sub';
-      col2.appendChild(main2);
-      col2.appendChild(sub2);
-      cols.appendChild(col1);
-      cols.appendChild(col2);
+
+      const mkCol = (colClass) => {
+        const col = document.createElement('div');
+        col.className = `pft-tile-bat-col ${colClass}`;
+        const head = document.createElement('div');
+        head.className = 'pft-tile-bat-col-head';
+        const colIc = document.createElement('ha-icon');
+        colIc.className = 'pft-tile-bat-col-ic';
+        colIc.setAttribute('icon', 'mdi:battery');
+        const colSoc = document.createElement('span');
+        colSoc.className = 'pft-tile-bat-col-soc';
+        head.appendChild(colIc);
+        head.appendChild(colSoc);
+        const mainCol = document.createElement('div');
+        mainCol.className = 'pft-tile-main';
+        const subCol = document.createElement('div');
+        subCol.className = 'pft-tile-sub';
+        col.appendChild(head);
+        col.appendChild(mainCol);
+        col.appendChild(subCol);
+        return { col, colIc, colSoc, mainCol, subCol };
+      };
+      const c1 = mkCol('pft-tile-bat-col-1');
+      const c2 = mkCol('pft-tile-bat-col-2');
+      main = c1.mainCol; sub = c1.subCol; col1Ic = c1.colIc; col1Soc = c1.colSoc;
+      main2 = c2.mainCol; sub2 = c2.subCol; col2Ic = c2.colIc; col2Soc = c2.colSoc;
+      cols.appendChild(c1.col);
+      cols.appendChild(c2.col);
       t.appendChild(cols);
     } else {
       main = document.createElement('div');
@@ -607,7 +621,7 @@ class PowerFlowTilesCard extends HTMLElement {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2 };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc };
     return t;
   }
 
@@ -752,6 +766,22 @@ class PowerFlowTilesCard extends HTMLElement {
         els.sub.textContent = batSub;
         if (els.main2) els.main2.textContent = `${batArrow2}${fmtPower(batAbs2, { decimals: dp })}`;
         if (els.sub2) els.sub2.textContent = batSub2;
+        if (els.col1Soc) els.col1Soc.textContent = v.batSoc !== null ? `${Math.round(v.batSoc)}%` : '–';
+        if (els.col2Soc) els.col2Soc.textContent = v.batSoc2 !== null ? `${Math.round(v.batSoc2)}%` : '–';
+        if (els.col1Ic) {
+          const ic1 = v.batSoc === null
+            ? 'mdi:battery-unknown'
+            : (v.batSoc >= 95 ? 'mdi:battery' : (v.batSoc <= 5 ? 'mdi:battery-outline' : `mdi:battery-${Math.round(v.batSoc / 10) * 10}`));
+          els.col1Ic.setAttribute('icon', ic1);
+          els.col1Ic.style.color = batCharging ? c.battery.color : (batDischarging ? c.battery.color_discharge : c.battery.color);
+        }
+        if (els.col2Ic) {
+          const ic2 = v.batSoc2 === null
+            ? 'mdi:battery-unknown'
+            : (v.batSoc2 >= 95 ? 'mdi:battery' : (v.batSoc2 <= 5 ? 'mdi:battery-outline' : `mdi:battery-${Math.round(v.batSoc2 / 10) * 10}`));
+          els.col2Ic.setAttribute('icon', ic2);
+          els.col2Ic.style.color = batCharging2 ? c.battery2.color : (batDischarging2 ? c.battery2.color_discharge : c.battery2.color);
+        }
         const anyActive = batCharging || batDischarging || batCharging2 || batDischarging2;
         els.root.classList.toggle('pft-tile-active', anyActive);
         const totalP = (v.batP ?? 0) + (v.batP2 ?? 0);
@@ -1215,8 +1245,8 @@ class PowerFlowTilesCard extends HTMLElement {
         left: 50%; top: 50%;
         transform: translate(-50%, -50%);
         z-index: 3;
-        width: 30%;
-        max-width: 130px;
+        width: 36%;
+        max-width: 165px;
         aspect-ratio: 1;
         pointer-events: none;
       }
@@ -1231,7 +1261,7 @@ class PowerFlowTilesCard extends HTMLElement {
             var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}) 0deg calc(var(--pft-soc, 0) * 3.6deg),
             rgba(127,127,127,0.18) calc(var(--pft-soc, 0) * 3.6deg) 360deg
           );
-        padding: 5px;
+        padding: 8px;
         box-shadow:
           0 4px 18px rgba(0,0,0,0.18),
           0 0 0 1px color-mix(in srgb, var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}) 35%, transparent),
@@ -1244,7 +1274,7 @@ class PowerFlowTilesCard extends HTMLElement {
             var(--pft-soc-color2, ${DEFAULT_COLORS.battery2_charge}) 0deg calc(var(--pft-soc2, 0) * 3.6deg),
             rgba(127,127,127,0.22) calc(var(--pft-soc2, 0) * 3.6deg) 360deg
           );
-        padding: 4px;
+        padding: 7px;
         box-shadow:
           inset 0 0 0 1px color-mix(in srgb, var(--pft-soc-color2, ${DEFAULT_COLORS.battery2_charge}) 35%, transparent);
         transition: background 400ms ease;
@@ -1255,31 +1285,31 @@ class PowerFlowTilesCard extends HTMLElement {
         background: var(--ha-card-background, var(--card-background-color));
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        gap: 2px;
-        padding: 4px;
+        gap: 3px;
+        padding: 6px;
         box-sizing: border-box;
       }
       .pft-hub-bat-row {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 4px;
         line-height: 1.05;
         font-variant-numeric: tabular-nums;
       }
       .pft-hub-bat-row .pft-hub-soc {
-        font-size: 0.78rem;
+        font-size: 0.95rem;
         font-weight: 700;
         color: var(--primary-text-color);
       }
       .pft-hub-bat-row .pft-hub-batpow {
-        font-size: 0.62rem;
+        font-size: 0.74rem;
         font-weight: 600;
         white-space: nowrap;
       }
       .pft-hub-bat-row .pft-hub-bat-ic {
-        --mdc-icon-size: 14px;
-        filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 60%, transparent));
+        --mdc-icon-size: 20px;
+        filter: drop-shadow(0 0 5px color-mix(in srgb, currentColor 60%, transparent));
         flex-shrink: 0;
       }
       .pft-hub-bat-row-1 .pft-hub-bat-ic { color: var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}); }
@@ -1288,11 +1318,11 @@ class PowerFlowTilesCard extends HTMLElement {
         flex-direction: column;
         gap: 1px;
       }
-      .pft-hub-single .pft-hub-bat-row .pft-hub-bat-ic { --mdc-icon-size: 26px; }
-      .pft-hub-single .pft-hub-bat-row .pft-hub-soc { font-size: 1rem; }
+      .pft-hub-single .pft-hub-bat-row .pft-hub-bat-ic { --mdc-icon-size: 32px; }
+      .pft-hub-single .pft-hub-bat-row .pft-hub-soc { font-size: 1.2rem; }
       .pft-hub-single .pft-hub-bat-row .pft-hub-batpow {
-        font-size: 0.7rem;
-        min-height: 0.7rem;
+        font-size: 0.8rem;
+        min-height: 0.8rem;
       }
 
       .pft-tile-battery-split .pft-tile-bat-cols {
@@ -1307,8 +1337,26 @@ class PowerFlowTilesCard extends HTMLElement {
         min-width: 0;
         gap: 1px;
       }
+      .pft-tile-battery-split .pft-tile-bat-col-head {
+        display: flex; align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--primary-text-color);
+      }
+      .pft-tile-battery-split .pft-tile-bat-col-ic {
+        --mdc-icon-size: 14px;
+        flex-shrink: 0;
+        filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 55%, transparent));
+      }
+      .pft-tile-battery-split .pft-tile-bat-col-soc {
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
       .pft-tile-battery-split .pft-tile-main {
-        font-size: 0.9rem;
+        font-size: 0.92rem;
+        margin-top: 1px;
       }
       .pft-tile-battery-split .pft-tile-sub {
         font-size: 0.62rem;

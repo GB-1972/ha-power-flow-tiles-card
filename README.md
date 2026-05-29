@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.0 — Optionaler zweiter Akku (konzentrische Hub-Ringe, gestapelte SOC-Mini-Zeilen, Split-Tile, summierte Flow-Linie).
+v0.5.1 — Größerer Hub-Donut + breitere Ringe + Mini-Header pro Akku-Spalte im geteilten Tile.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.0`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.1`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
