@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.1';
+const PFT_VERSION = '0.5.2';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -573,6 +573,9 @@ class PowerFlowTilesCard extends HTMLElement {
     let col1Soc = null;
     let col2Ic = null;
     let col2Soc = null;
+    let col1Name = null;
+    let col2Name = null;
+    let batName = null;
 
     if (isBatSplit) {
       t.classList.add('pft-tile-battery-split');
@@ -582,6 +585,9 @@ class PowerFlowTilesCard extends HTMLElement {
       const mkCol = (colClass) => {
         const col = document.createElement('div');
         col.className = `pft-tile-bat-col ${colClass}`;
+        const nameEl = document.createElement('div');
+        nameEl.className = 'pft-tile-bat-col-name';
+        col.appendChild(nameEl);
         const head = document.createElement('div');
         head.className = 'pft-tile-bat-col-head';
         const colIc = document.createElement('ha-icon');
@@ -598,16 +604,21 @@ class PowerFlowTilesCard extends HTMLElement {
         col.appendChild(head);
         col.appendChild(mainCol);
         col.appendChild(subCol);
-        return { col, colIc, colSoc, mainCol, subCol };
+        return { col, nameEl, colIc, colSoc, mainCol, subCol };
       };
       const c1 = mkCol('pft-tile-bat-col-1');
       const c2 = mkCol('pft-tile-bat-col-2');
-      main = c1.mainCol; sub = c1.subCol; col1Ic = c1.colIc; col1Soc = c1.colSoc;
-      main2 = c2.mainCol; sub2 = c2.subCol; col2Ic = c2.colIc; col2Soc = c2.colSoc;
+      main = c1.mainCol; sub = c1.subCol; col1Ic = c1.colIc; col1Soc = c1.colSoc; col1Name = c1.nameEl;
+      main2 = c2.mainCol; sub2 = c2.subCol; col2Ic = c2.colIc; col2Soc = c2.colSoc; col2Name = c2.nameEl;
       cols.appendChild(c1.col);
       cols.appendChild(c2.col);
       t.appendChild(cols);
     } else {
+      if (key === 'battery') {
+        batName = document.createElement('div');
+        batName.className = 'pft-tile-bat-name';
+        t.appendChild(batName);
+      }
       main = document.createElement('div');
       main.className = 'pft-tile-main';
       sub = document.createElement('div');
@@ -621,7 +632,7 @@ class PowerFlowTilesCard extends HTMLElement {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName };
     return t;
   }
 
@@ -762,6 +773,8 @@ class PowerFlowTilesCard extends HTMLElement {
       }
       const els = this._els.tiles.battery;
       if (els) {
+        if (els.col1Name) els.col1Name.textContent = c.battery.name ?? '';
+        if (els.col2Name) els.col2Name.textContent = c.battery2.name ?? '';
         els.main.textContent = `${batArrow}${fmtPower(batAbs, { decimals: dp })}`;
         els.sub.textContent = batSub;
         if (els.main2) els.main2.textContent = `${batArrow2}${fmtPower(batAbs2, { decimals: dp })}`;
@@ -797,6 +810,8 @@ class PowerFlowTilesCard extends HTMLElement {
         active: batCharging || batDischarging,
         color: batCharging ? c.battery.color : (batDischarging ? c.battery.color_discharge : DEFAULT_COLORS.battery_idle),
       });
+      const batEls = this._els.tiles.battery;
+      if (batEls && batEls.batName) batEls.batName.textContent = c.battery.name ?? '';
     }
     if (this._els.tiles.battery) {
       let icName;
@@ -1337,6 +1352,30 @@ class PowerFlowTilesCard extends HTMLElement {
         min-width: 0;
         gap: 1px;
       }
+      .pft-tile-battery-split .pft-tile-bat-col-name {
+        font-size: 0.66rem;
+        font-weight: 600;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        line-height: 1.1;
+        letter-spacing: 0.01em;
+      }
+      .pft-tile-battery-split .pft-tile-bat-col-name:empty { display: none; }
+      .pft-tile-bat-name {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        line-height: 1.1;
+        letter-spacing: 0.01em;
+      }
+      .pft-tile-bat-name:empty { display: none; }
       .pft-tile-battery-split .pft-tile-bat-col-head {
         display: flex; align-items: center;
         gap: 4px;
@@ -1538,6 +1577,7 @@ const EDITOR_SCHEMA = [
     title: 'Akku',
     icon: 'mdi:battery',
     schema: [
+      { name: 'name', selector: { text: {} } },
       { name: 'power', selector: SENSOR_FILTER },
       { name: 'soc', selector: SENSOR_FILTER },
       {
@@ -1567,6 +1607,7 @@ const EDITOR_SCHEMA = [
     icon: 'mdi:battery-medium',
     schema: [
       { name: 'show_battery2', selector: { boolean: {} } },
+      { name: 'name', selector: { text: {} } },
       { name: 'power', selector: SENSOR_FILTER },
       { name: 'soc', selector: SENSOR_FILTER },
       {
@@ -1727,6 +1768,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         sun_entity: c.solar?.sun_entity || 'sun.sun',
       },
       battery: {
+        name: c.battery?.name ?? '',
         power: c.battery?.power ?? '',
         soc: c.battery?.soc ?? '',
         capacity_kwh: typeof c.battery?.capacity_kwh === 'number' ? c.battery.capacity_kwh : null,
@@ -1738,6 +1780,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
       },
       battery2: {
         show_battery2: c.show_battery2 === true,
+        name: c.battery2?.name ?? '',
         power: c.battery2?.power ?? '',
         soc: c.battery2?.soc ?? '',
         capacity_kwh: typeof c.battery2?.capacity_kwh === 'number' ? c.battery2.capacity_kwh : null,
@@ -2107,7 +2150,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
 
     const battery = {};
     const vb = v.battery ?? {};
-    ['power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
+    ['name', 'power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
       if (vb[k]) battery[k] = vb[k];
     });
     if (typeof vb.capacity_kwh === 'number' && vb.capacity_kwh > 0) battery.capacity_kwh = vb.capacity_kwh;
@@ -2116,7 +2159,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
 
     const battery2 = {};
     const vb2 = v.battery2 ?? {};
-    ['power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
+    ['name', 'power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
       if (vb2[k]) battery2[k] = vb2[k];
     });
     if (typeof vb2.capacity_kwh === 'number' && vb2.capacity_kwh > 0) battery2.capacity_kwh = vb2.capacity_kwh;

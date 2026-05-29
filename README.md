@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.1 — Größerer Hub-Donut + breitere Ringe + Mini-Header pro Akku-Spalte im geteilten Tile.
+v0.5.2 — Frei benennbare Akkus (`battery.name`, `battery2.name`).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.1`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.2`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -139,6 +139,7 @@ Pro `mppts`-Eintrag:
 
 | Option            | Typ    | Beschreibung                                                |
 | ----------------- | ------ | ----------------------------------------------------------- |
+| `name`            | string | Optionaler Anzeigename, klein über dem Akku im Tile (Single-Modus über dem Power-Wert, Split-Modus über der linken Spalte). Leer = keine Zeile. |
 | `power`           | entity | Aktuelle Akku-Leistung in W.                                |
 | `soc`             | entity | Ladestand in % (für Hub-Donut + Hub-Mitte).                 |
 | `capacity_kwh`    | number | Brutto-Kapazität in kWh.                                    |
@@ -155,6 +156,7 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 | Option             | Typ    | Default     | Beschreibung                                                              |
 | ------------------ | ------ | ----------- | ------------------------------------------------------------------------- |
 | `show_battery2`    | bool   | `false`     | Top-level Toggle. Schaltet Akku 2 ein/aus, ohne Sensor-Auswahl zu löschen. |
+| `name`             | string | –           | Optionaler Anzeigename, klein über der rechten Tile-Spalte. Leer = keine Zeile. |
 | `power`            | entity | –           | Wie bei Akku 1.                                                            |
 | `soc`              | entity | –           | Wie bei Akku 1.                                                            |
 | `capacity_kwh`     | number | –           | Wie bei Akku 1.                                                            |
