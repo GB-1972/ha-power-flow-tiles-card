@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.4.3 — Sonnenverlaufs-Sektion mit sehr schmalem Lens-Strahl in Rot und sonnengelber Sonne.
+v0.5.0 — Optionaler zweiter Akku (konzentrische Hub-Ringe, gestapelte SOC-Mini-Zeilen, Split-Tile, summierte Flow-Linie).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.4.3`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.0`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -148,6 +148,28 @@ Pro `mppts`-Eintrag:
 | `color`           | css    | Farbe Laden + Default-Donut.                                |
 | `color_discharge` | css    | Farbe Entladen.                                             |
 
+### `battery2` (optional, zweiter Akku)
+
+Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.power` oder `battery2.soc` gesetzt ist. Bei Single-Akku-Setups das `battery2`-Feld einfach weglassen — keine Änderung am bestehenden Look.
+
+| Option             | Typ    | Default     | Beschreibung                                                              |
+| ------------------ | ------ | ----------- | ------------------------------------------------------------------------- |
+| `show_battery2`    | bool   | `false`     | Top-level Toggle. Schaltet Akku 2 ein/aus, ohne Sensor-Auswahl zu löschen. |
+| `power`            | entity | –           | Wie bei Akku 1.                                                            |
+| `soc`              | entity | –           | Wie bei Akku 1.                                                            |
+| `capacity_kwh`     | number | –           | Wie bei Akku 1.                                                            |
+| `invert_power`     | bool   | `false`     | Wie bei Akku 1.                                                            |
+| `charge_today`     | entity | –           | Wie bei Akku 1.                                                            |
+| `discharge_today`  | entity | –           | Wie bei Akku 1.                                                            |
+| `color`            | css    | `#f59e0b`   | Farbe Laden — bewusst andersfarbig als Akku 1 (Amber), damit die Ringe optisch getrennt sind. |
+| `color_discharge`  | css    | `#d946ef`   | Farbe Entladen — Fuchsia.                                                  |
+
+**Visualisierung mit 2 Akkus:**
+- Hub-Donut: außen Akku 1, innen Akku 2 (zwei konzentrische Ringe).
+- Hub-Mitte: zwei gestapelte Mini-Zeilen — pro Akku Icon · SOC % · Power-Pfeil.
+- Akku-Tile unten links: zwei Spalten (links Akku 1, rechts Akku 2).
+- Flow-Linie zum Hub: eine Linie, Power = Summe beider Akkus, Richtung folgt Vorzeichen der Summe (Netto-Bilanz).
+
 ### `grid`
 
 | Option          | Typ    | Beschreibung                                       |
@@ -183,7 +205,7 @@ Jedes Tile öffnet bei Klick den HA-„Weitere Infos"-Dialog der jeweils nahelie
 ## Roadmap
 
 - [x] Visueller Editor
-- [ ] Optionaler zweiter Akku
+- [x] Optionaler zweiter Akku
 - [ ] Optionale Inverter-Status-Zeile
 - [ ] Mehr Layout-Varianten (vertical stack, wide)
 - [ ] HACS-Eintrag

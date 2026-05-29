@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.4.3';
+const PFT_VERSION = '0.5.0';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -14,6 +14,8 @@ const DEFAULT_COLORS = {
   battery_charge: '#10b981',
   battery_discharge: '#3b82f6',
   battery_idle: '#9ca3af',
+  battery2_charge: '#f59e0b',
+  battery2_discharge: '#d946ef',
   home: '#a855f7',
   hub_accent: '#0a84ff',
 };
@@ -107,6 +109,12 @@ class PowerFlowTilesCard extends HTMLElement {
     c.battery.invert_power = c.battery.invert_power === true;
     c.battery.color = c.battery.color ?? DEFAULT_COLORS.battery_charge;
     c.battery.color_discharge = c.battery.color_discharge ?? DEFAULT_COLORS.battery_discharge;
+    c.show_battery2 = c.show_battery2 === true;
+    c.battery2 = (c.battery2 && typeof c.battery2 === 'object') ? c.battery2 : {};
+    c.battery2.invert_power = c.battery2.invert_power === true;
+    c.battery2.color = c.battery2.color ?? DEFAULT_COLORS.battery2_charge;
+    c.battery2.color_discharge = c.battery2.color_discharge ?? DEFAULT_COLORS.battery2_discharge;
+    c._hasBat2 = c.show_battery2 && !!(c.battery2.power || c.battery2.soc);
     c.grid = c.grid ?? {};
     c.grid.invert = c.grid.invert === true;
     c.grid.color_import = c.grid.color_import ?? c.grid.color ?? DEFAULT_COLORS.grid_import;
@@ -141,9 +149,10 @@ class PowerFlowTilesCard extends HTMLElement {
     return s ? num(s.state) : null;
   }
 
-  _signedBattery(raw) {
+  _signedBattery(raw, cfg) {
     if (raw === null) return null;
-    return this._config.battery.invert_power ? raw : -raw;
+    const bat = cfg ?? this._config.battery;
+    return bat.invert_power ? raw : -raw;
   }
 
   _signedGrid(raw) {
@@ -155,10 +164,14 @@ class PowerFlowTilesCard extends HTMLElement {
     const c = this._config;
     const solarP = this._getNum(c.solar.power);
     const solarE = this._getNum(c.solar.energy_today);
-    const batP = this._signedBattery(this._getNum(c.battery.power));
+    const batP = this._signedBattery(this._getNum(c.battery.power), c.battery);
     const batSoc = this._getNum(c.battery.soc);
     const batChargeE = this._getNum(c.battery.charge_today);
     const batDischargeE = this._getNum(c.battery.discharge_today);
+    const batP2 = c._hasBat2 ? this._signedBattery(this._getNum(c.battery2.power), c.battery2) : null;
+    const batSoc2 = c._hasBat2 ? this._getNum(c.battery2.soc) : null;
+    const batChargeE2 = c._hasBat2 ? this._getNum(c.battery2.charge_today) : null;
+    const batDischargeE2 = c._hasBat2 ? this._getNum(c.battery2.discharge_today) : null;
     const gridP = this._signedGrid(this._getNum(c.grid.power));
     const gridImpE = this._getNum(c.grid.import_today);
     const gridExpE = this._getNum(c.grid.export_today);
@@ -190,6 +203,7 @@ class PowerFlowTilesCard extends HTMLElement {
     return {
       solarP, solarE,
       batP, batSoc, batChargeE, batDischargeE,
+      batP2, batSoc2, batChargeE2, batDischargeE2,
       gridP, gridImpE, gridExpE,
       homeP, homeE, temp,
       mppts, loads, autarky,
@@ -474,24 +488,63 @@ class PowerFlowTilesCard extends HTMLElement {
 
     const hub = document.createElement('div');
     hub.className = 'pft-hub';
-    const ring = document.createElement('div');
-    ring.className = 'pft-hub-ring';
+    const ringOuter = document.createElement('div');
+    ringOuter.className = 'pft-hub-ring pft-hub-ring-outer';
+
+    let ringInner = null;
+    let coreParent = ringOuter;
+    if (this._config._hasBat2) {
+      ringInner = document.createElement('div');
+      ringInner.className = 'pft-hub-ring pft-hub-ring-inner';
+      ringOuter.appendChild(ringInner);
+      coreParent = ringInner;
+    }
+
     const inner = document.createElement('div');
     inner.className = 'pft-hub-inner';
+    if (!this._config._hasBat2) inner.classList.add('pft-hub-single');
+
+    const row1 = document.createElement('div');
+    row1.className = 'pft-hub-bat-row pft-hub-bat-row-1';
     const batIc = document.createElement('ha-icon');
     batIc.className = 'pft-hub-bat-ic';
     batIc.setAttribute('icon', 'mdi:battery');
-    const socVal = document.createElement('div');
+    const socVal = document.createElement('span');
     socVal.className = 'pft-hub-soc';
-    const batPow = document.createElement('div');
+    const batPow = document.createElement('span');
     batPow.className = 'pft-hub-batpow';
-    inner.appendChild(batIc);
-    inner.appendChild(socVal);
-    inner.appendChild(batPow);
-    ring.appendChild(inner);
-    hub.appendChild(ring);
+    row1.appendChild(batIc);
+    row1.appendChild(socVal);
+    row1.appendChild(batPow);
+    inner.appendChild(row1);
+
+    let batIc2 = null;
+    let socVal2 = null;
+    let batPow2 = null;
+    if (this._config._hasBat2) {
+      const row2 = document.createElement('div');
+      row2.className = 'pft-hub-bat-row pft-hub-bat-row-2';
+      batIc2 = document.createElement('ha-icon');
+      batIc2.className = 'pft-hub-bat-ic';
+      batIc2.setAttribute('icon', 'mdi:battery');
+      socVal2 = document.createElement('span');
+      socVal2.className = 'pft-hub-soc';
+      batPow2 = document.createElement('span');
+      batPow2.className = 'pft-hub-batpow';
+      row2.appendChild(batIc2);
+      row2.appendChild(socVal2);
+      row2.appendChild(batPow2);
+      inner.appendChild(row2);
+    }
+
+    coreParent.appendChild(inner);
+    hub.appendChild(ringOuter);
     stage.appendChild(hub);
-    this._els.hub = { ring, batIc, socVal, batPow };
+    this._els.hub = {
+      ringOuter, ringInner,
+      batIc, socVal, batPow,
+      batIc2, socVal2, batPow2,
+    };
 
     return stage;
   }
@@ -509,20 +562,52 @@ class PowerFlowTilesCard extends HTMLElement {
     lbl.textContent = label;
     head.appendChild(ic);
     head.appendChild(lbl);
-    const main = document.createElement('div');
-    main.className = 'pft-tile-main';
-    const sub = document.createElement('div');
-    sub.className = 'pft-tile-sub';
     t.appendChild(head);
-    t.appendChild(main);
-    t.appendChild(sub);
+
+    const isBatSplit = key === 'battery' && this._config._hasBat2;
+    let main;
+    let sub;
+    let main2 = null;
+    let sub2 = null;
+
+    if (isBatSplit) {
+      t.classList.add('pft-tile-battery-split');
+      const cols = document.createElement('div');
+      cols.className = 'pft-tile-bat-cols';
+      const col1 = document.createElement('div');
+      col1.className = 'pft-tile-bat-col';
+      main = document.createElement('div');
+      main.className = 'pft-tile-main';
+      sub = document.createElement('div');
+      sub.className = 'pft-tile-sub';
+      col1.appendChild(main);
+      col1.appendChild(sub);
+      const col2 = document.createElement('div');
+      col2.className = 'pft-tile-bat-col';
+      main2 = document.createElement('div');
+      main2.className = 'pft-tile-main';
+      sub2 = document.createElement('div');
+      sub2.className = 'pft-tile-sub';
+      col2.appendChild(main2);
+      col2.appendChild(sub2);
+      cols.appendChild(col1);
+      cols.appendChild(col2);
+      t.appendChild(cols);
+    } else {
+      main = document.createElement('div');
+      main.className = 'pft-tile-main';
+      sub = document.createElement('div');
+      sub.className = 'pft-tile-sub';
+      t.appendChild(main);
+      t.appendChild(sub);
+    }
 
     const moreInfo = this._tileEntityFor(key);
     if (moreInfo) {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2 };
     return t;
   }
 
@@ -648,17 +733,51 @@ class PowerFlowTilesCard extends HTMLElement {
       const dc = v.batDischargeE !== null ? fmtEnergy(v.batDischargeE, de) : '–';
       batSub = `↓ ${ch}  ↑ ${dc}`;
     }
-    this._setTile('battery', {
-      mainText: `${batArrow}${fmtPower(batAbs, { decimals: dp })}`,
-      subText: batSub,
-      active: batCharging || batDischarging,
-      color: batCharging ? c.battery.color : (batDischarging ? c.battery.color_discharge : DEFAULT_COLORS.battery_idle),
-    });
-    const batKey = v.batSoc === null ? 'unknown' : Math.round(v.batSoc / 10) * 10;
+
+    const batCharging2 = c._hasBat2 && (v.batP2 ?? 0) > c.flow_threshold;
+    const batDischarging2 = c._hasBat2 && (v.batP2 ?? 0) < -c.flow_threshold;
+
+    if (c._hasBat2) {
+      const batArrow2 = batCharging2 ? '↓ ' : (batDischarging2 ? '↑ ' : '');
+      const batAbs2 = v.batP2 !== null ? Math.abs(v.batP2) : null;
+      let batSub2 = '';
+      if (v.batChargeE2 !== null || v.batDischargeE2 !== null) {
+        const ch2 = v.batChargeE2 !== null ? fmtEnergy(v.batChargeE2, de) : '–';
+        const dc2 = v.batDischargeE2 !== null ? fmtEnergy(v.batDischargeE2, de) : '–';
+        batSub2 = `↓ ${ch2}  ↑ ${dc2}`;
+      }
+      const els = this._els.tiles.battery;
+      if (els) {
+        els.main.textContent = `${batArrow}${fmtPower(batAbs, { decimals: dp })}`;
+        els.sub.textContent = batSub;
+        if (els.main2) els.main2.textContent = `${batArrow2}${fmtPower(batAbs2, { decimals: dp })}`;
+        if (els.sub2) els.sub2.textContent = batSub2;
+        const anyActive = batCharging || batDischarging || batCharging2 || batDischarging2;
+        els.root.classList.toggle('pft-tile-active', anyActive);
+        const totalP = (v.batP ?? 0) + (v.batP2 ?? 0);
+        const sumCharging = totalP > c.flow_threshold;
+        const sumDischarging = totalP < -c.flow_threshold;
+        const accentColor = sumCharging ? c.battery.color : (sumDischarging ? c.battery.color_discharge : DEFAULT_COLORS.battery_idle);
+        els.root.style.setProperty('--pft-tile-accent', accentColor);
+      }
+    } else {
+      this._setTile('battery', {
+        mainText: `${batArrow}${fmtPower(batAbs, { decimals: dp })}`,
+        subText: batSub,
+        active: batCharging || batDischarging,
+        color: batCharging ? c.battery.color : (batDischarging ? c.battery.color_discharge : DEFAULT_COLORS.battery_idle),
+      });
+    }
     if (this._els.tiles.battery) {
-      const icName = v.batSoc === null
-        ? 'mdi:battery-unknown'
-        : (batKey >= 100 ? 'mdi:battery' : (batKey <= 0 ? 'mdi:battery-outline' : `mdi:battery-${batKey}`));
+      let icName;
+      if (c._hasBat2) {
+        icName = 'mdi:battery-high';
+      } else {
+        const batKey = v.batSoc === null ? 'unknown' : Math.round(v.batSoc / 10) * 10;
+        icName = v.batSoc === null
+          ? 'mdi:battery-unknown'
+          : (batKey >= 100 ? 'mdi:battery' : (batKey <= 0 ? 'mdi:battery-outline' : `mdi:battery-${batKey}`));
+      }
       this._els.tiles.battery.ic.setAttribute('icon', icName);
     }
 
@@ -671,8 +790,8 @@ class PowerFlowTilesCard extends HTMLElement {
 
     if (this._els.hub) {
       const soc = v.batSoc ?? 0;
-      this._els.hub.ring.style.setProperty('--pft-soc', `${soc}`);
-      this._els.hub.ring.style.setProperty('--pft-soc-color',
+      this._els.hub.ringOuter.style.setProperty('--pft-soc', `${soc}`);
+      this._els.hub.ringOuter.style.setProperty('--pft-soc-color',
         batCharging ? c.battery.color : (batDischarging ? c.battery.color_discharge : c.battery.color));
       this._els.hub.socVal.textContent = v.batSoc !== null ? `${Math.round(v.batSoc)}%` : '–';
       const icName = v.batSoc === null
@@ -686,11 +805,42 @@ class PowerFlowTilesCard extends HTMLElement {
       } else {
         this._els.hub.batPow.textContent = '';
       }
+
+      if (c._hasBat2 && this._els.hub.ringInner) {
+        const soc2 = v.batSoc2 ?? 0;
+        this._els.hub.ringInner.style.setProperty('--pft-soc2', `${soc2}`);
+        this._els.hub.ringInner.style.setProperty('--pft-soc-color2',
+          batCharging2 ? c.battery2.color : (batDischarging2 ? c.battery2.color_discharge : c.battery2.color));
+        if (this._els.hub.socVal2) {
+          this._els.hub.socVal2.textContent = v.batSoc2 !== null ? `${Math.round(v.batSoc2)}%` : '–';
+        }
+        if (this._els.hub.batIc2) {
+          const icName2 = v.batSoc2 === null
+            ? 'mdi:battery-unknown'
+            : (soc2 >= 95 ? 'mdi:battery' : (soc2 <= 5 ? 'mdi:battery-outline' : `mdi:battery-${Math.round(soc2 / 10) * 10}`));
+          this._els.hub.batIc2.setAttribute('icon', icName2);
+        }
+        if (this._els.hub.batPow2) {
+          if (v.batP2 !== null && Math.abs(v.batP2) > c.flow_threshold) {
+            const arrow2 = batCharging2 ? '↓' : '↑';
+            this._els.hub.batPow2.textContent = `${arrow2} ${fmtPower(Math.abs(v.batP2), { decimals: dp })}`;
+            this._els.hub.batPow2.style.color = batCharging2 ? c.battery2.color : c.battery2.color_discharge;
+          } else {
+            this._els.hub.batPow2.textContent = '';
+          }
+        }
+      }
     }
 
+    const totalBatP = (v.batP ?? 0) + (v.batP2 ?? 0);
+    const totalCharging = totalBatP > c.flow_threshold;
+    const totalDischarging = totalBatP < -c.flow_threshold;
+    const flowBatColor = totalCharging
+      ? c.battery.color
+      : (totalDischarging ? c.battery.color_discharge : c.battery.color);
     this._updateFlow('pv', v.solarP, c.solar.color, false);
     this._updateFlow('grid', v.gridP, gridImporting ? c.grid.color_import : c.grid.color_export, gridExporting);
-    this._updateFlow('battery', v.batP, batCharging ? c.battery.color : c.battery.color_discharge, batCharging);
+    this._updateFlow('battery', totalBatP, flowBatColor, totalCharging);
     this._updateFlow('home', v.homeP !== null ? -Math.abs(v.homeP) : null, c.home.color, true);
 
     if (this._els.mppts) {
@@ -1073,6 +1223,9 @@ class PowerFlowTilesCard extends HTMLElement {
       .pft-hub-ring {
         width: 100%; height: 100%;
         border-radius: 50%;
+        box-sizing: border-box;
+      }
+      .pft-hub-ring-outer {
         background:
           conic-gradient(
             var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}) 0deg calc(var(--pft-soc, 0) * 3.6deg),
@@ -1085,29 +1238,80 @@ class PowerFlowTilesCard extends HTMLElement {
           inset 0 1px 0 rgba(255,255,255,0.08);
         transition: background 400ms ease, box-shadow 200ms ease;
       }
+      .pft-hub-ring-inner {
+        background:
+          conic-gradient(
+            var(--pft-soc-color2, ${DEFAULT_COLORS.battery2_charge}) 0deg calc(var(--pft-soc2, 0) * 3.6deg),
+            rgba(127,127,127,0.22) calc(var(--pft-soc2, 0) * 3.6deg) 360deg
+          );
+        padding: 4px;
+        box-shadow:
+          inset 0 0 0 1px color-mix(in srgb, var(--pft-soc-color2, ${DEFAULT_COLORS.battery2_charge}) 35%, transparent);
+        transition: background 400ms ease;
+      }
       .pft-hub-inner {
         width: 100%; height: 100%;
         border-radius: 50%;
         background: var(--ha-card-background, var(--card-background-color));
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
+        gap: 2px;
+        padding: 4px;
+        box-sizing: border-box;
+      }
+      .pft-hub-bat-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        line-height: 1.05;
+        font-variant-numeric: tabular-nums;
+      }
+      .pft-hub-bat-row .pft-hub-soc {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--primary-text-color);
+      }
+      .pft-hub-bat-row .pft-hub-batpow {
+        font-size: 0.62rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .pft-hub-bat-row .pft-hub-bat-ic {
+        --mdc-icon-size: 14px;
+        filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 60%, transparent));
+        flex-shrink: 0;
+      }
+      .pft-hub-bat-row-1 .pft-hub-bat-ic { color: var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}); }
+      .pft-hub-bat-row-2 .pft-hub-bat-ic { color: var(--pft-soc-color2, ${DEFAULT_COLORS.battery2_charge}); }
+      .pft-hub-single .pft-hub-bat-row {
+        flex-direction: column;
         gap: 1px;
       }
-      .pft-hub-bat-ic {
-        --mdc-icon-size: 26px;
-        color: var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge});
-        filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pft-soc-color, ${DEFAULT_COLORS.battery_charge}) 60%, transparent));
-      }
-      .pft-hub-soc {
-        font-size: 1rem; font-weight: 700;
-        color: var(--primary-text-color);
-        font-variant-numeric: tabular-nums;
-      }
-      .pft-hub-batpow {
-        font-size: 0.7rem; font-weight: 600;
-        font-variant-numeric: tabular-nums;
-        line-height: 1;
+      .pft-hub-single .pft-hub-bat-row .pft-hub-bat-ic { --mdc-icon-size: 26px; }
+      .pft-hub-single .pft-hub-bat-row .pft-hub-soc { font-size: 1rem; }
+      .pft-hub-single .pft-hub-bat-row .pft-hub-batpow {
+        font-size: 0.7rem;
         min-height: 0.7rem;
+      }
+
+      .pft-tile-battery-split .pft-tile-bat-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+      }
+      .pft-tile-battery-split .pft-tile-bat-col {
+        display: flex; flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+        gap: 1px;
+      }
+      .pft-tile-battery-split .pft-tile-main {
+        font-size: 0.9rem;
+      }
+      .pft-tile-battery-split .pft-tile-sub {
+        font-size: 0.62rem;
       }
 
       .pft-mppts {
@@ -1233,6 +1437,7 @@ const EDITOR_LABELS = {
   max: 'Max (W)',
   show_sun_arc: 'Sonnenverlauf-Bereich anzeigen',
   sun_entity: 'Sonne-Entity',
+  show_battery2: 'Zweiten Akku anzeigen',
 };
 
 const SENSOR_FILTER = { entity: { filter: { domain: 'sensor' } } };
@@ -1285,6 +1490,35 @@ const EDITOR_SCHEMA = [
     title: 'Akku',
     icon: 'mdi:battery',
     schema: [
+      { name: 'power', selector: SENSOR_FILTER },
+      { name: 'soc', selector: SENSOR_FILTER },
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'capacity_kwh', selector: { number: { min: 0, step: 0.1, mode: 'box', unit_of_measurement: 'kWh' } } },
+          { name: 'invert_power', selector: { boolean: {} } },
+        ],
+      },
+      { name: 'charge_today', selector: SENSOR_FILTER },
+      { name: 'discharge_today', selector: SENSOR_FILTER },
+      {
+        type: 'grid',
+        name: '',
+        schema: [
+          { name: 'color', selector: { text: {} } },
+          { name: 'color_discharge', selector: { text: {} } },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'battery2',
+    type: 'expandable',
+    title: 'Akku 2',
+    icon: 'mdi:battery-medium',
+    schema: [
+      { name: 'show_battery2', selector: { boolean: {} } },
       { name: 'power', selector: SENSOR_FILTER },
       { name: 'soc', selector: SENSOR_FILTER },
       {
@@ -1453,6 +1687,17 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         discharge_today: c.battery?.discharge_today ?? '',
         color: c.battery?.color ?? '',
         color_discharge: c.battery?.color_discharge ?? '',
+      },
+      battery2: {
+        show_battery2: c.show_battery2 === true,
+        power: c.battery2?.power ?? '',
+        soc: c.battery2?.soc ?? '',
+        capacity_kwh: typeof c.battery2?.capacity_kwh === 'number' ? c.battery2.capacity_kwh : null,
+        invert_power: c.battery2?.invert_power === true,
+        charge_today: c.battery2?.charge_today ?? '',
+        discharge_today: c.battery2?.discharge_today ?? '',
+        color: c.battery2?.color ?? '',
+        color_discharge: c.battery2?.color_discharge ?? '',
       },
       grid: {
         power: c.grid?.power ?? '',
@@ -1820,6 +2065,16 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     if (typeof vb.capacity_kwh === 'number' && vb.capacity_kwh > 0) battery.capacity_kwh = vb.capacity_kwh;
     if (vb.invert_power === true) battery.invert_power = true;
     if (Object.keys(battery).length) next.battery = battery; else delete next.battery;
+
+    const battery2 = {};
+    const vb2 = v.battery2 ?? {};
+    ['power', 'soc', 'charge_today', 'discharge_today', 'color', 'color_discharge'].forEach((k) => {
+      if (vb2[k]) battery2[k] = vb2[k];
+    });
+    if (typeof vb2.capacity_kwh === 'number' && vb2.capacity_kwh > 0) battery2.capacity_kwh = vb2.capacity_kwh;
+    if (vb2.invert_power === true) battery2.invert_power = true;
+    if (Object.keys(battery2).length) next.battery2 = battery2; else delete next.battery2;
+    if (vb2.show_battery2 === true) next.show_battery2 = true; else delete next.show_battery2;
 
     const grid = {};
     const vg = v.grid ?? {};
