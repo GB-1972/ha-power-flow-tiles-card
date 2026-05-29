@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.2';
+const PFT_VERSION = '0.5.3';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -504,6 +504,11 @@ class PowerFlowTilesCard extends HTMLElement {
     inner.className = 'pft-hub-inner';
     if (!this._config._hasBat2) inner.classList.add('pft-hub-single');
 
+    const group1 = document.createElement('div');
+    group1.className = 'pft-hub-bat-group pft-hub-bat-group-1';
+    const batName = document.createElement('div');
+    batName.className = 'pft-hub-bat-name';
+    group1.appendChild(batName);
     const row1 = document.createElement('div');
     row1.className = 'pft-hub-bat-row pft-hub-bat-row-1';
     const batIc = document.createElement('ha-icon');
@@ -516,12 +521,19 @@ class PowerFlowTilesCard extends HTMLElement {
     row1.appendChild(batIc);
     row1.appendChild(socVal);
     row1.appendChild(batPow);
-    inner.appendChild(row1);
+    group1.appendChild(row1);
+    inner.appendChild(group1);
 
     let batIc2 = null;
     let socVal2 = null;
     let batPow2 = null;
+    let batName2 = null;
     if (this._config._hasBat2) {
+      const group2 = document.createElement('div');
+      group2.className = 'pft-hub-bat-group pft-hub-bat-group-2';
+      batName2 = document.createElement('div');
+      batName2.className = 'pft-hub-bat-name';
+      group2.appendChild(batName2);
       const row2 = document.createElement('div');
       row2.className = 'pft-hub-bat-row pft-hub-bat-row-2';
       batIc2 = document.createElement('ha-icon');
@@ -534,7 +546,8 @@ class PowerFlowTilesCard extends HTMLElement {
       row2.appendChild(batIc2);
       row2.appendChild(socVal2);
       row2.appendChild(batPow2);
-      inner.appendChild(row2);
+      group2.appendChild(row2);
+      inner.appendChild(group2);
     }
 
     coreParent.appendChild(inner);
@@ -542,8 +555,8 @@ class PowerFlowTilesCard extends HTMLElement {
     stage.appendChild(hub);
     this._els.hub = {
       ringOuter, ringInner,
-      batIc, socVal, batPow,
-      batIc2, socVal2, batPow2,
+      batIc, socVal, batPow, batName,
+      batIc2, socVal2, batPow2, batName2,
     };
 
     return stage;
@@ -834,6 +847,7 @@ class PowerFlowTilesCard extends HTMLElement {
     });
 
     if (this._els.hub) {
+      if (this._els.hub.batName) this._els.hub.batName.textContent = c.battery.name ?? '';
       const soc = v.batSoc ?? 0;
       this._els.hub.ringOuter.style.setProperty('--pft-soc', `${soc}`);
       this._els.hub.ringOuter.style.setProperty('--pft-soc-color',
@@ -852,6 +866,7 @@ class PowerFlowTilesCard extends HTMLElement {
       }
 
       if (c._hasBat2 && this._els.hub.ringInner) {
+        if (this._els.hub.batName2) this._els.hub.batName2.textContent = c.battery2.name ?? '';
         const soc2 = v.batSoc2 ?? 0;
         this._els.hub.ringInner.style.setProperty('--pft-soc2', `${soc2}`);
         this._els.hub.ringInner.style.setProperty('--pft-soc-color2',
@@ -1300,10 +1315,31 @@ class PowerFlowTilesCard extends HTMLElement {
         background: var(--ha-card-background, var(--card-background-color));
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        gap: 3px;
+        gap: 4px;
         padding: 6px;
         box-sizing: border-box;
       }
+      .pft-hub-bat-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        max-width: 100%;
+      }
+      .pft-hub-bat-name {
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        line-height: 1.15;
+        letter-spacing: 0.01em;
+        text-align: center;
+      }
+      .pft-hub-bat-name:empty { display: none; }
+      .pft-hub-single .pft-hub-bat-name { font-size: 0.7rem; }
       .pft-hub-bat-row {
         display: flex;
         align-items: center;
