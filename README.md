@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.3 — Akku-Name auch im Hub-Donut über der Mini-Zeile angezeigt.
+v0.5.4 — optionale Live-PV-Deckungsanzeige im Netz-Tile (`grid.solar_covered`).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.3`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.4`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -70,6 +70,7 @@ grid:
   invert: false
   import_today: sensor.system_gb_homebase_tagliche_netznutzung
   export_today: sensor.system_gb_homebase_tagliche_netzeinspeisung
+  solar_covered: sensor.pv_deckung
   color_import: "#ef4444"
   color_export: "#fb923c"
 
@@ -180,6 +181,7 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 | `invert`        | bool   | `true` = positiv heißt Einspeisung. Default `false`. |
 | `import_today`  | entity | Täglicher Bezug in kWh.                            |
 | `export_today`  | entity | Tägliche Einspeisung in kWh.                       |
+| `solar_covered` | entity | Optional. Aktuelle Leistung (W), die gerade von lokaler PV/Speicher-Erzeugung gedeckt wird (nicht vom Netz). Wird als zusätzliche Zeile "☀ … W PV-gedeckt" im Netz-Tile angezeigt, in der Solar-Akzentfarbe. Leer/weggelassen = Zeile wird nicht angezeigt. |
 | `color_import`  | css    | Farbe bei Bezug.                                   |
 | `color_export`  | css    | Farbe bei Einspeisung.                             |
 

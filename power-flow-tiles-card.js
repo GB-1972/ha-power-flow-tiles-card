@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.3';
+const PFT_VERSION = '0.5.4';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -175,6 +175,7 @@ class PowerFlowTilesCard extends HTMLElement {
     const gridP = this._signedGrid(this._getNum(c.grid.power));
     const gridImpE = this._getNum(c.grid.import_today);
     const gridExpE = this._getNum(c.grid.export_today);
+    const gridSolarCovered = this._getNum(c.grid.solar_covered);
     const homeP = this._getNum(c.home.power);
     const homeE = this._getNum(c.home.energy_today);
     const temp = this._getNum(c.environment.temperature);
@@ -204,7 +205,7 @@ class PowerFlowTilesCard extends HTMLElement {
       solarP, solarE,
       batP, batSoc, batChargeE, batDischargeE,
       batP2, batSoc2, batChargeE2, batDischargeE2,
-      gridP, gridImpE, gridExpE,
+      gridP, gridImpE, gridExpE, gridSolarCovered,
       homeP, homeE, temp,
       mppts, loads, autarky,
     };
@@ -589,6 +590,7 @@ class PowerFlowTilesCard extends HTMLElement {
     let col1Name = null;
     let col2Name = null;
     let batName = null;
+    let gridCoverage = null;
 
     if (isBatSplit) {
       t.classList.add('pft-tile-battery-split');
@@ -638,6 +640,11 @@ class PowerFlowTilesCard extends HTMLElement {
       sub.className = 'pft-tile-sub';
       t.appendChild(main);
       t.appendChild(sub);
+      if (key === 'grid') {
+        gridCoverage = document.createElement('div');
+        gridCoverage.className = 'pft-tile-grid-coverage';
+        t.appendChild(gridCoverage);
+      }
     }
 
     const moreInfo = this._tileEntityFor(key);
@@ -645,7 +652,7 @@ class PowerFlowTilesCard extends HTMLElement {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName, gridCoverage };
     return t;
   }
 
@@ -760,6 +767,13 @@ class PowerFlowTilesCard extends HTMLElement {
       active: gridImporting || gridExporting,
       color: gridImporting ? c.grid.color_import : (gridExporting ? c.grid.color_export : DEFAULT_COLORS.grid_idle),
     });
+    const gridEls = this._els.tiles.grid;
+    if (gridEls && gridEls.gridCoverage) {
+      gridEls.gridCoverage.textContent = v.gridSolarCovered !== null
+        ? `☀ ${fmtPower(v.gridSolarCovered, { decimals: dp })} PV-gedeckt`
+        : '';
+      gridEls.gridCoverage.style.color = c.solar.color;
+    }
 
     const batCharging = (v.batP ?? 0) > c.flow_threshold;
     const batDischarging = (v.batP ?? 0) < -c.flow_threshold;
@@ -1153,6 +1167,13 @@ class PowerFlowTilesCard extends HTMLElement {
         color: var(--secondary-text-color);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+      }
+      .pft-tile-grid-coverage {
+        font-size: 0.68rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        margin-top: 2px;
       }
 
       .pft-solar-arc {
@@ -1550,6 +1571,7 @@ const EDITOR_LABELS = {
   invert: 'Vorzeichen invertieren (+ = Einspeisung)',
   import_today: 'Netzbezug heute (kWh)',
   export_today: 'Einspeisung heute (kWh)',
+  solar_covered: 'Aktuell PV-gedeckt (W)',
   color_import: 'Farbe Bezug',
   color_export: 'Farbe Einspeisung',
   mode: 'Modus',
@@ -1676,6 +1698,7 @@ const EDITOR_SCHEMA = [
       { name: 'invert', selector: { boolean: {} } },
       { name: 'import_today', selector: SENSOR_FILTER },
       { name: 'export_today', selector: SENSOR_FILTER },
+      { name: 'solar_covered', selector: SENSOR_FILTER },
       {
         type: 'grid',
         name: '',
@@ -1831,6 +1854,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         invert: c.grid?.invert === true,
         import_today: c.grid?.import_today ?? '',
         export_today: c.grid?.export_today ?? '',
+        solar_covered: c.grid?.solar_covered ?? '',
         color_import: c.grid?.color_import ?? '',
         color_export: c.grid?.color_export ?? '',
       },
@@ -2205,7 +2229,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
 
     const grid = {};
     const vg = v.grid ?? {};
-    ['power', 'import_today', 'export_today', 'color_import', 'color_export'].forEach((k) => {
+    ['power', 'import_today', 'export_today', 'solar_covered', 'color_import', 'color_export'].forEach((k) => {
       if (vg[k]) grid[k] = vg[k];
     });
     if (vg.invert === true) grid.invert = true;
