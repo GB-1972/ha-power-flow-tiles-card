@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.5';
+const PFT_VERSION = '0.5.6';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -1520,6 +1520,13 @@ class PowerFlowTilesCard extends HTMLElement {
       }
       .pft-load-full {
         grid-column: 1 / -1;
+      }
+      .pft-load-full .pft-load-txt {
+        flex: 1 1 auto;
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
       }
       .pft-load.pft-clickable { cursor: pointer; }
       .pft-load.pft-clickable:hover { transform: translateY(-1px); }

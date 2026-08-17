@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.5 — feste Spaltenzahl für Loads (`home.loads_columns`) und optionale volle Zeile pro Load (`full_width`).
+v0.5.6 — `full_width`-Load-Tiles: Name/Wert jetzt zeilig mit Abstand statt links geklumpt.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.5`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.6`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
