@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.4 — optionale Live-PV-Deckungsanzeige im Netz-Tile (`grid.solar_covered`).
+v0.5.5 — feste Spaltenzahl für Loads (`home.loads_columns`) und optionale volle Zeile pro Load (`full_width`).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.4`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.5`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -78,13 +78,21 @@ home:
   power: sensor.gb_solarspeicher_ac_hausabgabe
   energy_today: sensor.system_gb_homebase_taglicher_hausverbrauch
   color: "#a855f7"
+  loads_columns: 3     # optional: feste Spaltenzahl statt automatischem Reflow
   loads:
+    - name: Anker
+      icon: mdi:home-lightning-bolt-outline
+      power: sensor.gb_solarspeicher_ac_hausabgabe
+    - name: SunEnergy
+      icon: mdi:home-lightning-bolt-outline
+      power: sensor.xt_local_op
+    - name: Hoymiles
+      icon: mdi:home-lightning-bolt-outline
+      power: sensor.gb_bkw_power
     - name: Wallbox
       icon: mdi:ev-station
       power: sensor.wallbox_total_active_power
-    - name: Hausverbrauch
-      icon: mdi:home-lightning-bolt-outline
-      power: sensor.gb_solarspeicher_hausbedarf
+      full_width: true   # eigene Zeile darunter statt in der Spaltenreihe
 
 autarky:
   mode: energy        # oder 'power' für Live-Berechnung
@@ -189,12 +197,13 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 
 | Option         | Typ    | Beschreibung                                                |
 | -------------- | ------ | ----------------------------------------------------------- |
-| `power`        | entity | Gesamt-Hausverbrauch in W.                                  |
-| `energy_today` | entity | Tagesverbrauch in kWh.                                      |
-| `color`        | css    | Akzentfarbe.                                                |
-| `loads`        | list   | Zusatz-Tiles unten (Wallbox, etc.), beliebig viele Einträge.|
+| `power`         | entity | Gesamt-Hausverbrauch in W.                                  |
+| `energy_today`  | entity | Tagesverbrauch in kWh.                                      |
+| `color`         | css    | Akzentfarbe.                                                |
+| `loads_columns` | number | Optional. Feste Spaltenzahl für die `loads`-Kacheln (z. B. `3`). Ohne Angabe: automatisches Reflow je nach Breite (Default, wie bisher). |
+| `loads`         | list   | Zusatz-Tiles unten (Wallbox, etc.), beliebig viele Einträge.|
 
-Pro `loads`-Eintrag: `name`, `icon`, `power`.
+Pro `loads`-Eintrag: `name`, `icon`, `power`, optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
 
 ### `autarky`
 

@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.4';
+const PFT_VERSION = '0.5.5';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -705,10 +705,14 @@ class PowerFlowTilesCard extends HTMLElement {
     if (!this._config.home.loads.length) return null;
     const wrap = document.createElement('div');
     wrap.className = 'pft-loads';
+    if (typeof this._config.home.loads_columns === 'number' && this._config.home.loads_columns > 0) {
+      wrap.style.gridTemplateColumns = `repeat(${this._config.home.loads_columns}, 1fr)`;
+    }
     this._els.loads = [];
     for (const l of this._config.home.loads) {
       const t = document.createElement('div');
       t.className = 'pft-load';
+      if (l.full_width === true) t.classList.add('pft-load-full');
       const ic = document.createElement('ha-icon');
       ic.setAttribute('icon', l.icon ?? 'mdi:flash');
       ic.className = 'pft-load-ic';
@@ -1514,6 +1518,9 @@ class PowerFlowTilesCard extends HTMLElement {
         border: 1px solid color-mix(in srgb, var(--primary-text-color) 10%, transparent);
         transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
       }
+      .pft-load-full {
+        grid-column: 1 / -1;
+      }
       .pft-load.pft-clickable { cursor: pointer; }
       .pft-load.pft-clickable:hover { transform: translateY(-1px); }
       .pft-load.pft-load-active {
@@ -1572,6 +1579,7 @@ const EDITOR_LABELS = {
   import_today: 'Netzbezug heute (kWh)',
   export_today: 'Einspeisung heute (kWh)',
   solar_covered: 'Aktuell PV-gedeckt (W)',
+  loads_columns: 'Spalten Verbraucher (leer = automatisch)',
   color_import: 'Farbe Bezug',
   color_export: 'Farbe Einspeisung',
   mode: 'Modus',
@@ -1718,6 +1726,7 @@ const EDITOR_SCHEMA = [
       { name: 'power', selector: SENSOR_FILTER },
       { name: 'energy_today', selector: SENSOR_FILTER },
       { name: 'color', selector: { text: {} } },
+      { name: 'loads_columns', selector: { number: { min: 1, max: 6, step: 1, mode: 'box' } } },
     ],
   },
   {
@@ -1781,6 +1790,7 @@ const LOAD_SCHEMA = [
     ],
   },
   { name: 'power', selector: SENSOR_FILTER },
+  { name: 'full_width', selector: { boolean: {} } },
 ];
 
 const SUB_LABELS = {
@@ -1788,6 +1798,7 @@ const SUB_LABELS = {
   max: 'Max (W)',
   power: 'Power-Sensor',
   icon: 'Icon',
+  full_width: 'Eigene volle Zeile',
 };
 
 class PowerFlowTilesCardEditor extends HTMLElement {
@@ -1862,6 +1873,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         power: c.home?.power ?? '',
         energy_today: c.home?.energy_today ?? '',
         color: c.home?.color ?? '',
+        loads_columns: typeof c.home?.loads_columns === 'number' ? c.home.loads_columns : null,
       },
       autarky: {
         mode: c.autarky?.mode ?? 'power',
@@ -2100,6 +2112,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         name: l.name ?? '',
         icon: l.icon ?? '',
         power: l.power ?? '',
+        full_width: l.full_width === true,
       };
       if (JSON.stringify(form.data) !== JSON.stringify(data)) {
         form.data = data;
@@ -2176,6 +2189,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     if (v.name) entry.name = v.name; else delete entry.name;
     if (v.icon) entry.icon = v.icon; else delete entry.icon;
     if (v.power) entry.power = v.power; else delete entry.power;
+    if (v.full_width === true) entry.full_width = true; else delete entry.full_width;
     loads[idx] = entry;
     home.loads = loads;
     this._config = { ...this._config, home };
@@ -2240,6 +2254,8 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     ['power', 'energy_today', 'color'].forEach((k) => {
       if (vh[k]) home[k] = vh[k]; else delete home[k];
     });
+    if (typeof vh.loads_columns === 'number' && vh.loads_columns > 0) home.loads_columns = vh.loads_columns;
+    else delete home.loads_columns;
     if (Object.keys(home).filter((k) => k !== 'loads').length || (home.loads && home.loads.length)) {
       next.home = home;
     } else {
