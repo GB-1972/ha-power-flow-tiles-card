@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.6';
+const PFT_VERSION = '0.5.7';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -53,6 +53,19 @@ function fmtEnergy(kwh, decimals = 1) {
 function fmtTemp(c, decimals = 1) {
   if (c === null) return '–';
   return `${c.toFixed(decimals)} °C`;
+}
+
+const PV_POWER_BANDS = [
+  { max: 200, color: '#888888' },
+  { max: 500, color: '#ff0000' },
+  { max: 1000, color: '#0000ff' },
+  { max: 1500, color: '#ff9900' },
+];
+
+function pvBandColor(watts) {
+  if (watts === null) return null;
+  const band = PV_POWER_BANDS.find((b) => watts < b.max);
+  return band ? band.color : '#009933';
 }
 
 function fmtClock(date) {
@@ -191,6 +204,9 @@ class PowerFlowTilesCard extends HTMLElement {
       name: l.name ?? '',
       icon: l.icon ?? 'mdi:flash',
       power: this._getNum(l.power),
+      pv: l.pv ? this._getNum(l.pv) : null,
+      toHouse: l.to_house ? this._getNum(l.to_house) : null,
+      toBattery: l.to_battery ? this._getNum(l.to_battery) : null,
     }));
 
     let autarky = null;
@@ -710,8 +726,10 @@ class PowerFlowTilesCard extends HTMLElement {
     }
     this._els.loads = [];
     for (const l of this._config.home.loads) {
+      const pvMode = !!l.pv;
       const t = document.createElement('div');
       t.className = 'pft-load';
+      if (pvMode) t.classList.add('pft-load-pv-mode');
       if (l.full_width === true) t.classList.add('pft-load-full');
       const ic = document.createElement('ha-icon');
       ic.setAttribute('icon', l.icon ?? 'mdi:flash');
@@ -725,14 +743,46 @@ class PowerFlowTilesCard extends HTMLElement {
       v.className = 'pft-load-val';
       txt.appendChild(nm);
       txt.appendChild(v);
+
+      let houseEl = null;
+      let batteryEl = null;
+      if (pvMode) {
+        const detail = document.createElement('div');
+        detail.className = 'pft-load-detail';
+        if (l.to_house) {
+          houseEl = document.createElement('span');
+          houseEl.className = 'pft-load-detail-item';
+          const houseIc = document.createElement('ha-icon');
+          houseIc.setAttribute('icon', 'mdi:home-import-outline');
+          const houseVal = document.createElement('span');
+          houseEl.appendChild(houseIc);
+          houseEl.appendChild(houseVal);
+          houseEl._val = houseVal;
+          detail.appendChild(houseEl);
+        }
+        if (l.to_battery) {
+          batteryEl = document.createElement('span');
+          batteryEl.className = 'pft-load-detail-item';
+          const batIc = document.createElement('ha-icon');
+          batIc.setAttribute('icon', 'mdi:battery-charging-outline');
+          const batVal = document.createElement('span');
+          batteryEl.appendChild(batIc);
+          batteryEl.appendChild(batVal);
+          batteryEl._val = batVal;
+          detail.appendChild(batteryEl);
+        }
+        txt.appendChild(detail);
+      }
+
       t.appendChild(ic);
       t.appendChild(txt);
-      if (l.power) {
+      const clickEntity = pvMode ? l.pv : l.power;
+      if (clickEntity) {
         t.classList.add('pft-clickable');
-        t.addEventListener('click', () => this._fireMoreInfo(l.power));
+        t.addEventListener('click', () => this._fireMoreInfo(clickEntity));
       }
       wrap.appendChild(t);
-      this._els.loads.push({ root: t, v });
+      this._els.loads.push({ root: t, v, ic, pvMode, houseEl, batteryEl });
     }
     return wrap;
   }
@@ -938,8 +988,17 @@ class PowerFlowTilesCard extends HTMLElement {
       for (let i = 0; i < this._els.loads.length; i++) {
         const l = v.loads[i];
         const els = this._els.loads[i];
-        els.v.textContent = fmtPower(l.power, { decimals: dp });
-        els.root.classList.toggle('pft-load-active', (l.power ?? 0) > c.flow_threshold);
+        if (els.pvMode) {
+          els.v.textContent = fmtPower(l.pv, { decimals: dp });
+          const bandColor = pvBandColor(l.pv);
+          els.v.style.color = bandColor ?? '';
+          if (els.houseEl) els.houseEl._val.textContent = fmtPower(l.toHouse, { decimals: dp });
+          if (els.batteryEl) els.batteryEl._val.textContent = fmtPower(l.toBattery !== null ? Math.max(0, l.toBattery) : null, { decimals: dp });
+          els.root.classList.toggle('pft-load-active', (l.pv ?? 0) > c.flow_threshold);
+        } else {
+          els.v.textContent = fmtPower(l.power, { decimals: dp });
+          els.root.classList.toggle('pft-load-active', (l.power ?? 0) > c.flow_threshold);
+        }
       }
     }
 
@@ -1550,7 +1609,25 @@ class PowerFlowTilesCard extends HTMLElement {
         font-size: 0.92rem; font-weight: 700;
         color: var(--primary-text-color);
         font-variant-numeric: tabular-nums;
+        transition: color 300ms ease;
       }
+      .pft-load-detail {
+        display: flex; flex-wrap: wrap;
+        gap: 2px 10px;
+        margin-top: 2px;
+      }
+      .pft-load-detail-item {
+        display: flex; align-items: center; gap: 3px;
+        font-size: 0.68rem; font-weight: 500;
+        color: var(--secondary-text-color);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .pft-load-detail-item ha-icon {
+        --mdc-icon-size: 13px;
+        flex-shrink: 0;
+      }
+      .pft-load-pv-mode .pft-load-txt { gap: 2px; }
 
       @media (max-width: 500px) {
         .pft-card { padding: 10px 10px 8px; }
@@ -1797,13 +1874,25 @@ const LOAD_SCHEMA = [
     ],
   },
   { name: 'power', selector: SENSOR_FILTER },
+  {
+    type: 'grid',
+    name: '',
+    schema: [
+      { name: 'pv', selector: SENSOR_FILTER },
+      { name: 'to_house', selector: SENSOR_FILTER },
+      { name: 'to_battery', selector: SENSOR_FILTER },
+    ],
+  },
   { name: 'full_width', selector: { boolean: {} } },
 ];
 
 const SUB_LABELS = {
   name: 'Name',
   max: 'Max (W)',
-  power: 'Power-Sensor',
+  power: 'Power-Sensor (einfache Anzeige)',
+  pv: 'PV-Sensor (optional, aktiviert Detail-Anzeige)',
+  to_house: 'Sensor: Abgabe ins Haus',
+  to_battery: 'Sensor: Abgabe in Speicher',
   icon: 'Icon',
   full_width: 'Eigene volle Zeile',
 };
@@ -2119,6 +2208,9 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         name: l.name ?? '',
         icon: l.icon ?? '',
         power: l.power ?? '',
+        pv: l.pv ?? '',
+        to_house: l.to_house ?? '',
+        to_battery: l.to_battery ?? '',
         full_width: l.full_width === true,
       };
       if (JSON.stringify(form.data) !== JSON.stringify(data)) {
@@ -2196,6 +2288,9 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     if (v.name) entry.name = v.name; else delete entry.name;
     if (v.icon) entry.icon = v.icon; else delete entry.icon;
     if (v.power) entry.power = v.power; else delete entry.power;
+    if (v.pv) entry.pv = v.pv; else delete entry.pv;
+    if (v.to_house) entry.to_house = v.to_house; else delete entry.to_house;
+    if (v.to_battery) entry.to_battery = v.to_battery; else delete entry.to_battery;
     if (v.full_width === true) entry.full_width = true; else delete entry.full_width;
     loads[idx] = entry;
     home.loads = loads;

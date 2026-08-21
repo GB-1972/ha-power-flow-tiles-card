@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.6 — `full_width`-Load-Tiles: Name/Wert jetzt zeilig mit Abstand statt links geklumpt.
+v0.5.7 — `loads`-Kacheln können jetzt optional PV-Leistung (farblich nach Leistungsband), Haus-Abgabe und Speicher-Ladeleistung als Detailzeilen anzeigen (Feld `pv` aktiviert den Modus).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.6`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.7`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -82,13 +82,18 @@ home:
   loads:
     - name: Anker
       icon: mdi:home-lightning-bolt-outline
-      power: sensor.gb_solarspeicher_ac_hausabgabe
+      pv: sensor.gb_solarspeicher_solarleistung        # aktiviert Detail-Modus
+      to_house: sensor.gb_solarspeicher_ac_hausabgabe
+      to_battery: sensor.gb_solarspeicher_aufladeleistung
     - name: SunEnergy
       icon: mdi:home-lightning-bolt-outline
-      power: sensor.xt_local_op
+      pv: sensor.sunenergyxt_pv_gesamteingangsleistung
+      to_house: sensor.xt_local_op
+      to_battery: sensor.xt_akku_leistung
     - name: Hoymiles
       icon: mdi:home-lightning-bolt-outline
-      power: sensor.gb_bkw_power
+      pv: sensor.gb_bkw_power
+      to_house: sensor.gb_bkw_power                    # kein Speicher vorhanden
     - name: Wallbox
       icon: mdi:ev-station
       power: sensor.wallbox_total_active_power
@@ -203,7 +208,7 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 | `loads_columns` | number | Optional. Feste Spaltenzahl für die `loads`-Kacheln (z. B. `3`). Ohne Angabe: automatisches Reflow je nach Breite (Default, wie bisher). |
 | `loads`         | list   | Zusatz-Tiles unten (Wallbox, etc.), beliebig viele Einträge.|
 
-Pro `loads`-Eintrag: `name`, `icon`, `power`, optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
+Pro `loads`-Eintrag: `name`, `icon`, entweder `power` (einfache Anzeige, ein Wert) **oder** `pv` (aktiviert den Detail-Modus: PV-Leistung als farbiger Hauptwert nach Leistungsband — <200W grau, <500W rot, <1000W blau, <1500W orange, ≥1500W grün, dieselben Schwellen wie bei den MPPT-Strings) zusammen mit optional `to_house` (Zeile "→ Haus") und `to_battery` (Zeile "→ Speicher", negative Werte — z. B. Akku entlädt — werden als 0 dargestellt). Zusätzlich optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
 
 ### `autarky`
 
