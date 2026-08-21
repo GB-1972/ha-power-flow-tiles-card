@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.7 — `loads`-Kacheln können jetzt optional PV-Leistung (farblich nach Leistungsband), Haus-Abgabe und Speicher-Ladeleistung als Detailzeilen anzeigen (Feld `pv` aktiviert den Modus).
+v0.5.8 — Load-Tile-Name jetzt fett, Detail-Zeilen (Haus/Speicher) in Primärtextfarbe statt hellgrau (bessere Lesbarkeit).
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.7`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.8`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 

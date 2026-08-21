@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.7';
+const PFT_VERSION = '0.5.8';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -1601,7 +1601,7 @@ class PowerFlowTilesCard extends HTMLElement {
       }
       .pft-load-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
       .pft-load-name {
-        font-size: 0.74rem; font-weight: 500;
+        font-size: 0.74rem; font-weight: 700;
         color: var(--secondary-text-color);
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
@@ -1618,8 +1618,8 @@ class PowerFlowTilesCard extends HTMLElement {
       }
       .pft-load-detail-item {
         display: flex; align-items: center; gap: 3px;
-        font-size: 0.68rem; font-weight: 500;
-        color: var(--secondary-text-color);
+        font-size: 0.68rem; font-weight: 600;
+        color: var(--primary-text-color);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
