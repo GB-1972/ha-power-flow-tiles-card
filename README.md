@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.11 — Release-Retag von v0.5.10 (das Release v0.5.10 zeigte versehentlich auf einen alten Zwischen-Commit statt auf `main` und lieferte daher nur den v0.5.9-Funktionsstand aus; inhaltlich identisch zu dem, was v0.5.10 eigentlich enthalten sollte). Optionale `solar.strings`-Liste: Tagesertrag je Anlage (z. B. Anker/SunEnergy/Hoymiles) wird direkt kompakt in der PV-Kachel angezeigt, ohne deren Größe zu verändern. (v0.5.9: dieselbe Tagesertrag-Anzeige auf Ebene der einzelnen MPPT-Strings.)
+v0.5.12 — `solar.strings`-Aufschlüsselung bekommt eine eigene, umbrechende Zeile in der PV-Kachel statt in eine einzelne, abgeschnittene Zeile gequetscht zu werden (war in v0.5.10/11 zu klein und wurde per Ellipsis abgeschnitten). Die Kachel wird dadurch um eine Zeile höher, wenn `strings` gesetzt ist; die Größe der aktuellen PV-Leistung (großer Wert oben) bleibt unverändert. (v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.11`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.12`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -162,14 +162,14 @@ Pro `mppts`-Eintrag (einzelner MPPT/Panel, unterhalb der Karte als eigene Zeile 
 | `energy_today` | entity | Optional. Tages-Gesamtleistung (Ertrag) dieses Strings in kWh — kompakt neben dem Leistungswert, ändert die Kachelgröße nicht. |
 | `max`          | number | Maximalleistung (für die Füllstand-Bar).                            |
 
-Pro `strings`-Eintrag (Anlagen-Gesamtwert, direkt im Sub-Text der PV-Kachel, ersetzt dort den einzelnen `solar.energy_today`-Text):
+Pro `strings`-Eintrag (Anlagen-Gesamtwert, eigene umbrechende Zeile unterhalb des normalen `solar.energy_today`-Sub-Texts in der PV-Kachel):
 
 | Option         | Typ    | Beschreibung                                                        |
 | -------------- | ------ | -------------------------------------------------------------------- |
-| `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM") — steht kompakt in einer einzigen Zeile, lange Namen können abgeschnitten werden. |
+| `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM").                      |
 | `energy_today` | entity | Tagesertrag dieser Anlage in kWh.                                    |
 
-Beispiel-Anzeige in der PV-Kachel: `Anker 7.1 · SE 7.3 · HM 4.3 kWh`. Die Kachelgröße und die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändern sich dabei nicht — bei sehr vielen/langen Einträgen wird der Text mit Ellipsis abgeschnitten statt die Kachel zu vergrößern.
+Beispiel-Anzeige in der PV-Kachel: eine Zeile mit `X kWh heute` (Gesamt, wie gehabt), darunter eine zweite Zeile mit den Einzelwerten (`Anker 7.1 kWh`, `SE 7.3 kWh`, `HM 4.3 kWh`), die bei Platzmangel automatisch umbricht statt abgeschnitten zu werden. Die Kachel wird dadurch um eine Zeile höher, wenn `strings` gesetzt ist; die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändert sich nicht.
 
 ### `battery`
 

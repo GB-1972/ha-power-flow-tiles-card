@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.11';
+const PFT_VERSION = '0.5.12';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -670,12 +670,19 @@ class PowerFlowTilesCard extends HTMLElement {
       }
     }
 
+    let stringsEl = null;
+    if (key === 'pv') {
+      stringsEl = document.createElement('div');
+      stringsEl.className = 'pft-tile-strings';
+      t.appendChild(stringsEl);
+    }
+
     const moreInfo = this._tileEntityFor(key);
     if (moreInfo) {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName, gridCoverage };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName, gridCoverage, stringsEl };
     return t;
   }
 
@@ -811,17 +818,22 @@ class PowerFlowTilesCard extends HTMLElement {
     const dp = c.decimals_power;
     const de = c.decimals_energy;
 
-    let pvSub = v.solarE !== null ? `${fmtEnergy(v.solarE, de)} heute` : '';
-    if (c.solar.strings.length) {
-      const parts = v.strings.map((s) => `${s.name} ${s.energy !== null ? s.energy.toFixed(de) : '–'}`);
-      pvSub = `${parts.join(' · ')} kWh`;
-    }
     this._setTile('pv', {
       mainText: fmtPower(v.solarP, { decimals: dp }),
-      subText: pvSub,
+      subText: v.solarE !== null ? `${fmtEnergy(v.solarE, de)} heute` : '',
       active: (v.solarP ?? 0) > c.flow_threshold,
       color: c.solar.color,
     });
+    const pvStringsEl = this._els.tiles.pv?.stringsEl;
+    if (pvStringsEl) {
+      pvStringsEl.innerHTML = '';
+      for (const s of v.strings) {
+        const item = document.createElement('span');
+        item.className = 'pft-tile-strings-item';
+        item.textContent = `${s.name} ${s.energy !== null ? fmtEnergy(s.energy, de) : '–'}`;
+        pvStringsEl.appendChild(item);
+      }
+    }
 
     const gridImporting = (v.gridP ?? 0) > c.flow_threshold;
     const gridExporting = (v.gridP ?? 0) < -c.flow_threshold;
@@ -1260,6 +1272,20 @@ class PowerFlowTilesCard extends HTMLElement {
         white-space: nowrap;
         margin-top: 2px;
       }
+      .pft-tile-strings {
+        display: flex;
+        flex-wrap: wrap;
+        row-gap: 1px;
+        column-gap: 8px;
+        margin-top: 2px;
+      }
+      .pft-tile-strings:empty { display: none; }
+      .pft-tile-strings-item {
+        font-size: 0.72rem;
+        color: var(--secondary-text-color);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
 
       .pft-solar-arc {
         margin-bottom: 10px;
@@ -1667,6 +1693,7 @@ class PowerFlowTilesCard extends HTMLElement {
         .pft-tile { padding: 6px 8px; }
         .pft-tile-main { font-size: 1.05rem; }
         .pft-tile-sub { font-size: 0.66rem; }
+        .pft-tile-strings-item { font-size: 0.66rem; }
         .pft-hub-bat-ic { --mdc-icon-size: 20px; }
         .pft-hub-soc { font-size: 0.85rem; }
         .pft-mppts { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
