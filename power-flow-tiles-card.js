@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.8';
+const PFT_VERSION = '0.5.9';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -196,6 +196,7 @@ class PowerFlowTilesCard extends HTMLElement {
     const mppts = c.solar.mppts.map((m) => ({
       name: m.name ?? '',
       power: this._getNum(m.power),
+      energyToday: this._getNum(m.energy_today),
       max: typeof m.max === 'number' ? m.max : (typeof m.max_power === 'number' ? m.max_power : null),
       icon: m.icon ?? null,
     }));
@@ -700,10 +701,16 @@ class PowerFlowTilesCard extends HTMLElement {
       const nm = document.createElement('span');
       nm.className = 'pft-mppt-name';
       nm.textContent = m.name ?? '';
+      const vals = document.createElement('span');
+      vals.className = 'pft-mppt-vals';
       const v = document.createElement('span');
       v.className = 'pft-mppt-val';
+      const e = document.createElement('span');
+      e.className = 'pft-mppt-energy';
+      vals.appendChild(v);
+      vals.appendChild(e);
       head.appendChild(nm);
-      head.appendChild(v);
+      head.appendChild(vals);
       const bar = document.createElement('div');
       bar.className = 'pft-mppt-bar';
       const fill = document.createElement('div');
@@ -712,7 +719,7 @@ class PowerFlowTilesCard extends HTMLElement {
       row.appendChild(head);
       row.appendChild(bar);
       wrap.appendChild(row);
-      this._els.mppts.push({ row, v, fill });
+      this._els.mppts.push({ row, v, e, fill });
     }
     return wrap;
   }
@@ -977,6 +984,7 @@ class PowerFlowTilesCard extends HTMLElement {
         const els = this._els.mppts[i];
         const p = m.power;
         els.v.textContent = p !== null ? `${Math.round(p)} W` : '–';
+        els.e.textContent = m.energyToday !== null ? fmtEnergy(m.energyToday, de) : '';
         const pct = (p !== null && m.max) ? Math.max(0, Math.min(100, (p / m.max) * 100)) : 0;
         els.fill.style.width = `${pct}%`;
         els.fill.style.background = c.solar.color;
@@ -1523,7 +1531,7 @@ class PowerFlowTilesCard extends HTMLElement {
 
       .pft-mppts {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
         gap: 6px 10px;
         margin-top: 10px;
         padding: 8px 6px 4px;
@@ -1540,12 +1548,23 @@ class PowerFlowTilesCard extends HTMLElement {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         min-width: 0;
       }
+      .pft-mppt-vals {
+        display: flex; align-items: baseline;
+        gap: 4px; flex-shrink: 0;
+      }
       .pft-mppt-val {
         font-size: 0.78rem; font-weight: 700;
         color: var(--primary-text-color);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
+      .pft-mppt-energy {
+        font-size: 0.62rem; font-weight: 500;
+        color: var(--secondary-text-color);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .pft-mppt-energy:empty { display: none; }
       .pft-mppt-bar {
         height: 4px;
         border-radius: 2px;
@@ -1636,6 +1655,10 @@ class PowerFlowTilesCard extends HTMLElement {
         .pft-tile-sub { font-size: 0.66rem; }
         .pft-hub-bat-ic { --mdc-icon-size: 20px; }
         .pft-hub-soc { font-size: 0.85rem; }
+        .pft-mppts { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+        .pft-mppt-vals { gap: 3px; }
+        .pft-mppt-val { font-size: 0.72rem; }
+        .pft-mppt-energy { font-size: 0.58rem; }
       }
     `;
   }
@@ -1862,6 +1885,7 @@ const MPPT_SCHEMA = [
     ],
   },
   { name: 'power', selector: SENSOR_FILTER },
+  { name: 'energy_today', selector: SENSOR_FILTER },
 ];
 
 const LOAD_SCHEMA = [
@@ -1890,6 +1914,7 @@ const SUB_LABELS = {
   name: 'Name',
   max: 'Max (W)',
   power: 'Power-Sensor (einfache Anzeige)',
+  energy_today: 'Tagesertrag (kWh, optional)',
   pv: 'PV-Sensor (optional, aktiviert Detail-Anzeige)',
   to_house: 'Sensor: Abgabe ins Haus',
   to_battery: 'Sensor: Abgabe in Speicher',
@@ -2167,6 +2192,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         name: m.name ?? '',
         max: typeof m.max === 'number' ? m.max : (typeof m.max_power === 'number' ? m.max_power : null),
         power: m.power ?? '',
+        energy_today: m.energy_today ?? '',
       };
       if (JSON.stringify(form.data) !== JSON.stringify(data)) {
         form.data = data;
@@ -2249,6 +2275,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     const entry = { ...(mppts[idx] ?? {}) };
     if (v.name) entry.name = v.name; else delete entry.name;
     if (v.power) entry.power = v.power; else delete entry.power;
+    if (v.energy_today) entry.energy_today = v.energy_today; else delete entry.energy_today;
     if (typeof v.max === 'number' && v.max > 0) entry.max = v.max; else delete entry.max;
     delete entry.max_power;
     mppts[idx] = entry;
