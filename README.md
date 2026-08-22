@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.8 — Load-Tile-Name jetzt fett, Detail-Zeilen (Haus/Speicher) in Primärtextfarbe statt hellgrau (bessere Lesbarkeit).
+v0.5.9 — Optionaler `energy_today` je PV-String: Tages-Gesamtleistung der einzelnen Strings wird kompakt neben dem Live-Wert angezeigt, ohne die Kachelgröße zu verändern.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.8`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.9`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -44,15 +44,19 @@ solar:
   mppts:
     - name: "Links unten"
       power: sensor.gb_solarspeicher_solar_pv1
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich   # kein Sensor pro String vorhanden -> Gruppen-Gesamtwert
       max: 420
     - name: "Rechts oben"
       power: sensor.gb_solarspeicher_solar_pv2
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
       max: 420
     - name: "Links oben"
       power: sensor.gb_solarspeicher_solar_pv3
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
       max: 420
     - name: "Rechts unten"
       power: sensor.gb_solarspeicher_solar_pv4
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
       max: 420
 
 battery:
@@ -143,11 +147,12 @@ Wenn die Animation falsch herum läuft (z. B. „Akku entlädt, obwohl er lädt"
 
 Pro `mppts`-Eintrag:
 
-| Option   | Typ    | Beschreibung                              |
-| -------- | ------ | ----------------------------------------- |
-| `name`   | string | Anzeigename.                              |
-| `power`  | entity | Leistung dieses Strings in W.             |
-| `max`    | number | Maximalleistung (für die Füllstand-Bar).  |
+| Option         | Typ    | Beschreibung                                                        |
+| -------------- | ------ | -------------------------------------------------------------------- |
+| `name`         | string | Anzeigename.                                                        |
+| `power`        | entity | Leistung dieses Strings in W.                                       |
+| `energy_today` | entity | Optional. Tages-Gesamtleistung (Ertrag) dieses Strings in kWh — kompakt neben dem Leistungswert, ändert die Kachelgröße nicht. Falls die Wechselrichter-/Speicher-Integration keinen Sensor pro String liefert, kann hier auch ein gemeinsamer Gruppen-Gesamtwert für mehrere Strings eingetragen werden. |
+| `max`          | number | Maximalleistung (für die Füllstand-Bar).                            |
 
 ### `battery`
 
