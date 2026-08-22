@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.13 — `solar.strings`-Aufschlüsselung steht jetzt immer als eigene Zeile pro Anlage untereinander (statt zeilenweise umzubrechen, was z. B. zwei Einträge in eine Zeile quetschte). Die PV-Kachel wächst entsprechend um eine Zeile pro String; die Größe der aktuellen PV-Leistung (großer Wert oben) bleibt unverändert. (v0.5.12: erster Versuch mit Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
+v0.5.14 — `solar.strings` steht jetzt als eigene Spalte oben rechts in der PV-Kachel (statt als Block unterhalb der PV-Leistung). Auf Desktop-Breite wächst die Kachel dadurch in den meisten Fällen gar nicht mehr, da die Strings-Spalte die freie Breite neben Icon/Leistung/Tagesertrag nutzt statt zusätzliche Höhe zu brauchen; auf schmalen Bildschirmen (≤500px) fällt es automatisch zurück auf den gestapelten Block unterhalb. (v0.5.13: alle Strings untereinander, aber unterhalb der PV-Leistung; v0.5.12: Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.13`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.14`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -169,7 +169,7 @@ Pro `strings`-Eintrag (Anlagen-Gesamtwert, eigene umbrechende Zeile unterhalb de
 | `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM").                      |
 | `energy_today` | entity | Tagesertrag dieser Anlage in kWh.                                    |
 
-Beispiel-Anzeige in der PV-Kachel: eine Zeile mit `X kWh heute` (Gesamt, wie gehabt), darunter für jeden `strings`-Eintrag eine eigene Zeile (`Anker 7.1 kWh`, `SE 7.3 kWh`, `HM 4.3 kWh` jeweils untereinander). Die Kachel wächst dadurch um eine Zeile pro Eintrag, wenn `strings` gesetzt ist; die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändert sich nicht.
+Layout: Icon/Leistung/`X kWh heute` bleiben links wie gehabt, `strings` erscheint als separate Spalte rechtsbündig oben in der Kachel (`Anker 7.1 kWh` / `SE 7.3 kWh` / `HM 4.3 kWh`, jeweils eine eigene Zeile). Auf schmalen Bildschirmen (≤500px) fällt das automatisch zurück auf einen Block unterhalb der PV-Leistung. Die Schriftgröße der aktuellen PV-Leistung (großer Wert links) ändert sich nicht.
 
 ### `battery`
 

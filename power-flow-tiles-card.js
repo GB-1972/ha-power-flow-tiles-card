@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.13';
+const PFT_VERSION = '0.5.14';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -599,9 +599,9 @@ class PowerFlowTilesCard extends HTMLElement {
     lbl.textContent = label;
     head.appendChild(ic);
     head.appendChild(lbl);
-    t.appendChild(head);
 
     const isBatSplit = key === 'battery' && this._config._hasBat2;
+    const hasPvStrings = key === 'pv' && this._config.solar.strings.length > 0;
     let main;
     let sub;
     let main2 = null;
@@ -614,6 +614,19 @@ class PowerFlowTilesCard extends HTMLElement {
     let col2Name = null;
     let batName = null;
     let gridCoverage = null;
+    let stringsEl = null;
+
+    let mainCol = t;
+    if (hasPvStrings) {
+      t.classList.add('pft-tile-pv-split');
+      mainCol = document.createElement('div');
+      mainCol.className = 'pft-tile-pv-col-main';
+      stringsEl = document.createElement('div');
+      stringsEl.className = 'pft-tile-strings pft-tile-pv-col-strings';
+      t.appendChild(mainCol);
+      t.appendChild(stringsEl);
+    }
+    mainCol.appendChild(head);
 
     if (isBatSplit) {
       t.classList.add('pft-tile-battery-split');
@@ -650,28 +663,27 @@ class PowerFlowTilesCard extends HTMLElement {
       main2 = c2.mainCol; sub2 = c2.subCol; col2Ic = c2.colIc; col2Soc = c2.colSoc; col2Name = c2.nameEl;
       cols.appendChild(c1.col);
       cols.appendChild(c2.col);
-      t.appendChild(cols);
+      mainCol.appendChild(cols);
     } else {
       if (key === 'battery') {
         batName = document.createElement('div');
         batName.className = 'pft-tile-bat-name';
-        t.appendChild(batName);
+        mainCol.appendChild(batName);
       }
       main = document.createElement('div');
       main.className = 'pft-tile-main';
       sub = document.createElement('div');
       sub.className = 'pft-tile-sub';
-      t.appendChild(main);
-      t.appendChild(sub);
+      mainCol.appendChild(main);
+      mainCol.appendChild(sub);
       if (key === 'grid') {
         gridCoverage = document.createElement('div');
         gridCoverage.className = 'pft-tile-grid-coverage';
-        t.appendChild(gridCoverage);
+        mainCol.appendChild(gridCoverage);
       }
     }
 
-    let stringsEl = null;
-    if (key === 'pv') {
+    if (key === 'pv' && !hasPvStrings) {
       stringsEl = document.createElement('div');
       stringsEl.className = 'pft-tile-strings';
       t.appendChild(stringsEl);
@@ -1279,6 +1291,24 @@ class PowerFlowTilesCard extends HTMLElement {
         margin-top: 2px;
       }
       .pft-tile-strings:empty { display: none; }
+      .pft-tile-pv-split {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .pft-tile-pv-col-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .pft-tile-pv-col-strings {
+        margin-top: 0;
+        flex-shrink: 0;
+        align-items: flex-end;
+        text-align: right;
+      }
       .pft-tile-strings-item {
         font-size: 0.72rem;
         color: var(--secondary-text-color);
@@ -1693,6 +1723,8 @@ class PowerFlowTilesCard extends HTMLElement {
         .pft-tile-main { font-size: 1.05rem; }
         .pft-tile-sub { font-size: 0.66rem; }
         .pft-tile-strings-item { font-size: 0.66rem; }
+        .pft-tile-pv-split { flex-direction: column; }
+        .pft-tile-pv-col-strings { align-items: flex-start; text-align: left; }
         .pft-hub-bat-ic { --mdc-icon-size: 20px; }
         .pft-hub-soc { font-size: 0.85rem; }
         .pft-mppts { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
