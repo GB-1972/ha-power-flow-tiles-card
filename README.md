@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.14 — `solar.strings` steht jetzt als eigene Spalte oben rechts in der PV-Kachel (statt als Block unterhalb der PV-Leistung). Auf Desktop-Breite wächst die Kachel dadurch in den meisten Fällen gar nicht mehr, da die Strings-Spalte die freie Breite neben Icon/Leistung/Tagesertrag nutzt statt zusätzliche Höhe zu brauchen; auf schmalen Bildschirmen (≤500px) fällt es automatisch zurück auf den gestapelten Block unterhalb. (v0.5.13: alle Strings untereinander, aber unterhalb der PV-Leistung; v0.5.12: Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
+v0.5.15 — `solar.strings`-Spalte oben rechts gilt jetzt auf allen Bildschirmbreiten (der Mobile-Fallback ≤500px, der wieder auf die gestapelte Variante zurückfiel, ist entfernt — nur die Schriftgröße schrumpft dort noch etwas). (v0.5.14: Spalte oben rechts eingeführt, aber mit Mobile-Fallback der versehentlich immer griff; v0.5.13: alle Strings untereinander, aber unterhalb der PV-Leistung; v0.5.12: Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.14`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.15`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
