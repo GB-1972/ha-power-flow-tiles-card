@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.14';
+const PFT_VERSION = '0.5.15';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -1722,9 +1722,7 @@ class PowerFlowTilesCard extends HTMLElement {
         .pft-tile { padding: 6px 8px; }
         .pft-tile-main { font-size: 1.05rem; }
         .pft-tile-sub { font-size: 0.66rem; }
-        .pft-tile-strings-item { font-size: 0.66rem; }
-        .pft-tile-pv-split { flex-direction: column; }
-        .pft-tile-pv-col-strings { align-items: flex-start; text-align: left; }
+        .pft-tile-strings-item { font-size: 0.64rem; }
         .pft-hub-bat-ic { --mdc-icon-size: 20px; }
         .pft-hub-soc { font-size: 0.85rem; }
         .pft-mppts { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
