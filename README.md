@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.9 — Optionaler `energy_today` je PV-String: Tages-Gesamtleistung der einzelnen Strings wird kompakt neben dem Live-Wert angezeigt, ohne die Kachelgröße zu verändern.
+v0.5.10 — Optionale `solar.strings`-Liste: Tagesertrag je Anlage (z. B. Anker/SunEnergy/Hoymiles) wird direkt kompakt in der PV-Kachel angezeigt, ohne deren Größe zu verändern. (v0.5.9: dieselbe Tagesertrag-Anzeige auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.9`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.10`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -44,20 +44,27 @@ solar:
   mppts:
     - name: "Links unten"
       power: sensor.gb_solarspeicher_solar_pv1
-      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich   # kein Sensor pro String vorhanden -> Gruppen-Gesamtwert
+      energy_today: sensor.gb_solarspeicher_solar_pv1_tagesertrag
       max: 420
     - name: "Rechts oben"
       power: sensor.gb_solarspeicher_solar_pv2
-      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
+      energy_today: sensor.gb_solarspeicher_solar_pv2_tagesertrag
       max: 420
     - name: "Links oben"
       power: sensor.gb_solarspeicher_solar_pv3
-      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
+      energy_today: sensor.gb_solarspeicher_solar_pv3_tagesertrag
       max: 420
     - name: "Rechts unten"
       power: sensor.gb_solarspeicher_solar_pv4
-      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
+      energy_today: sensor.gb_solarspeicher_solar_pv4_tagesertrag
       max: 420
+  strings:
+    - name: "Anker"
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
+    - name: "SE"
+      energy_today: sensor.garage_sunenergyxt_heutige_pv_erzeugung
+    - name: "HM"
+      energy_today: sensor.hoymiles_tagesertrag
 
 battery:
   power: sensor.gb_solarspeicher_akkuleistung
@@ -143,16 +150,26 @@ Wenn die Animation falsch herum läuft (z. B. „Akku entlädt, obwohl er lädt"
 | `color`        | css    | `#f5a524`   | Akzentfarbe.                                                                                              |
 | `show_sun_arc` | bool   | `true`      | Eigene Sektion oben mit Lens-förmigem Bogen, Aufgangs-/Untergangszeit, Tag-/Nacht-Dauer, % des Tages und wandernder Sonne inkl. Power-Pill. `false` zum Ausblenden. |
 | `sun_entity`   | entity | `sun.sun`   | Sonne-Entity (`domain: sun`) für `next_rising` / `next_setting`. Standard reicht für die meisten Setups. |
-| `mppts`        | list   | `[]`        | Liste der einzelnen Strings, beliebig viele Einträge.                                                     |
+| `mppts`        | list   | `[]`        | Liste der einzelnen MPPT-Strings/Panels, beliebig viele Einträge.                                          |
+| `strings`      | list   | `[]`        | Liste der Anlagen/Quellen (z. B. Anker/SunEnergy/Hoymiles) für die Tagesertrag-Aufschlüsselung direkt in der PV-Kachel. Nicht zu verwechseln mit `mppts` — siehe unten. |
 
-Pro `mppts`-Eintrag:
+Pro `mppts`-Eintrag (einzelner MPPT/Panel, unterhalb der Karte als eigene Zeile mit Füllstand-Bar):
 
 | Option         | Typ    | Beschreibung                                                        |
 | -------------- | ------ | -------------------------------------------------------------------- |
 | `name`         | string | Anzeigename.                                                        |
 | `power`        | entity | Leistung dieses Strings in W.                                       |
-| `energy_today` | entity | Optional. Tages-Gesamtleistung (Ertrag) dieses Strings in kWh — kompakt neben dem Leistungswert, ändert die Kachelgröße nicht. Falls die Wechselrichter-/Speicher-Integration keinen Sensor pro String liefert, kann hier auch ein gemeinsamer Gruppen-Gesamtwert für mehrere Strings eingetragen werden. |
+| `energy_today` | entity | Optional. Tages-Gesamtleistung (Ertrag) dieses Strings in kWh — kompakt neben dem Leistungswert, ändert die Kachelgröße nicht. |
 | `max`          | number | Maximalleistung (für die Füllstand-Bar).                            |
+
+Pro `strings`-Eintrag (Anlagen-Gesamtwert, direkt im Sub-Text der PV-Kachel, ersetzt dort den einzelnen `solar.energy_today`-Text):
+
+| Option         | Typ    | Beschreibung                                                        |
+| -------------- | ------ | -------------------------------------------------------------------- |
+| `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM") — steht kompakt in einer einzigen Zeile, lange Namen können abgeschnitten werden. |
+| `energy_today` | entity | Tagesertrag dieser Anlage in kWh.                                    |
+
+Beispiel-Anzeige in der PV-Kachel: `Anker 7.1 · SE 7.3 · HM 4.3 kWh`. Die Kachelgröße und die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändern sich dabei nicht — bei sehr vielen/langen Einträgen wird der Text mit Ellipsis abgeschnitten statt die Kachel zu vergrößern.
 
 ### `battery`
 
