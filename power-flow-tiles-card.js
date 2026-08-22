@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.10';
+const PFT_VERSION = '0.5.11';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,

@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.10 — Optionale `solar.strings`-Liste: Tagesertrag je Anlage (z. B. Anker/SunEnergy/Hoymiles) wird direkt kompakt in der PV-Kachel angezeigt, ohne deren Größe zu verändern. (v0.5.9: dieselbe Tagesertrag-Anzeige auf Ebene der einzelnen MPPT-Strings.)
+v0.5.11 — Release-Retag von v0.5.10 (das Release v0.5.10 zeigte versehentlich auf einen alten Zwischen-Commit statt auf `main` und lieferte daher nur den v0.5.9-Funktionsstand aus; inhaltlich identisch zu dem, was v0.5.10 eigentlich enthalten sollte). Optionale `solar.strings`-Liste: Tagesertrag je Anlage (z. B. Anker/SunEnergy/Hoymiles) wird direkt kompakt in der PV-Kachel angezeigt, ohne deren Größe zu verändern. (v0.5.9: dieselbe Tagesertrag-Anzeige auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.10`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.11`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
