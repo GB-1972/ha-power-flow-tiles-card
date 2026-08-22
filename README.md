@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.12 — `solar.strings`-Aufschlüsselung bekommt eine eigene, umbrechende Zeile in der PV-Kachel statt in eine einzelne, abgeschnittene Zeile gequetscht zu werden (war in v0.5.10/11 zu klein und wurde per Ellipsis abgeschnitten). Die Kachel wird dadurch um eine Zeile höher, wenn `strings` gesetzt ist; die Größe der aktuellen PV-Leistung (großer Wert oben) bleibt unverändert. (v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
+v0.5.13 — `solar.strings`-Aufschlüsselung steht jetzt immer als eigene Zeile pro Anlage untereinander (statt zeilenweise umzubrechen, was z. B. zwei Einträge in eine Zeile quetschte). Die PV-Kachel wächst entsprechend um eine Zeile pro String; die Größe der aktuellen PV-Leistung (großer Wert oben) bleibt unverändert. (v0.5.12: erster Versuch mit Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.12`
+   - URL: `/local/power-flow-tiles-card.js?v=0.5.13`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -169,7 +169,7 @@ Pro `strings`-Eintrag (Anlagen-Gesamtwert, eigene umbrechende Zeile unterhalb de
 | `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM").                      |
 | `energy_today` | entity | Tagesertrag dieser Anlage in kWh.                                    |
 
-Beispiel-Anzeige in der PV-Kachel: eine Zeile mit `X kWh heute` (Gesamt, wie gehabt), darunter eine zweite Zeile mit den Einzelwerten (`Anker 7.1 kWh`, `SE 7.3 kWh`, `HM 4.3 kWh`), die bei Platzmangel automatisch umbricht statt abgeschnitten zu werden. Die Kachel wird dadurch um eine Zeile höher, wenn `strings` gesetzt ist; die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändert sich nicht.
+Beispiel-Anzeige in der PV-Kachel: eine Zeile mit `X kWh heute` (Gesamt, wie gehabt), darunter für jeden `strings`-Eintrag eine eigene Zeile (`Anker 7.1 kWh`, `SE 7.3 kWh`, `HM 4.3 kWh` jeweils untereinander). Die Kachel wächst dadurch um eine Zeile pro Eintrag, wenn `strings` gesetzt ist; die Schriftgröße der aktuellen PV-Leistung (großer Wert oben) ändert sich nicht.
 
 ### `battery`
 
