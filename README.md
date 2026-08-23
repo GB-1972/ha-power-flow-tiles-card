@@ -8,13 +8,15 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
+v0.6.1 — `home.loads`-Einträge im PV-Modus (mit `pv`-Feld gesetzt) zeigen die →Speicher-Zeile jetzt immer an, auch wenn `to_battery` nicht konfiguriert ist (Wert dann `–`). Damit sehen alle drei Erzeugungsanlagen (Anker/SunEnergy/Hoymiles) gleich aus, auch wenn eine davon — wie Hoymiles — tatsächlich keinen eigenen Speicher hat. Vorher wurde die Zeile bei fehlendem `to_battery` komplett ausgeblendet.
+
 v0.6.0 — `solar.strings` (Tagesertrag-Spalte direkt in der PV-Kachel) wieder entfernt: Der begrenzte Platz in der Kachel neben dem zentralen Akku-Hub ließ sich nicht zuverlässig ohne Überlappung lösen (siehe v0.5.9–v0.5.17). Stattdessen bekommen die `home.loads`-Einträge (Anker/SunEnergy/Hoymiles etc., unterhalb der vier Haupt-Kacheln — dort ist deutlich mehr Platz) ein neues optionales `energy_today`-Feld für denselben Zweck.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.6.0`
+   - URL: `/local/power-flow-tiles-card.js?v=0.6.1`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -99,7 +101,7 @@ home:
     - name: Hoymiles
       icon: mdi:home-lightning-bolt-outline
       pv: sensor.gb_bkw_power
-      to_house: sensor.gb_bkw_power                    # kein Speicher vorhanden
+      to_house: sensor.gb_bkw_power                    # kein Speicher vorhanden -> Zeile "→ Speicher" zeigt "–"
       energy_today: sensor.hoymiles_tagesertrag
     - name: Wallbox
       icon: mdi:ev-station
@@ -218,7 +220,7 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 | `loads_columns` | number | Optional. Feste Spaltenzahl für die `loads`-Kacheln (z. B. `3`). Ohne Angabe: automatisches Reflow je nach Breite (Default, wie bisher). |
 | `loads`         | list   | Zusatz-Tiles unten (Wallbox, etc.), beliebig viele Einträge.|
 
-Pro `loads`-Eintrag: `name`, `icon`, entweder `power` (einfache Anzeige, ein Wert) **oder** `pv` (aktiviert den Detail-Modus: PV-Leistung als farbiger Hauptwert nach Leistungsband — <200W grau, <500W rot, <1000W blau, <1500W orange, ≥1500W grün, dieselben Schwellen wie bei den MPPT-Strings) zusammen mit optional `to_house` (Zeile "→ Haus") und `to_battery` (Zeile "→ Speicher", negative Werte — z. B. Akku entlädt — werden als 0 dargestellt). Zusätzlich optional `energy_today` (entity, kWh) — zeigt eine weitere Detail-Zeile "📅 X kWh" (Tagesertrag/-verbrauch dieser Anlage); funktioniert unabhängig vom Detail-Modus, also auch bei reinen `power`-Einträgen. Zusätzlich optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
+Pro `loads`-Eintrag: `name`, `icon`, entweder `power` (einfache Anzeige, ein Wert) **oder** `pv` (aktiviert den Detail-Modus: PV-Leistung als farbiger Hauptwert nach Leistungsband — <200W grau, <500W rot, <1000W blau, <1500W orange, ≥1500W grün, dieselben Schwellen wie bei den MPPT-Strings) zusammen mit optional `to_house` (Zeile "→ Haus") und `to_battery` (Zeile "→ Speicher", negative Werte — z. B. Akku entlädt — werden als 0 dargestellt). Im Detail-Modus wird die "→ Speicher"-Zeile immer angezeigt, auch ohne `to_battery` (dann Wert `–`) — für optische Konsistenz zwischen Anlagen mit und ohne eigenen Speicher. Zusätzlich optional `energy_today` (entity, kWh) — zeigt eine weitere Detail-Zeile "📅 X kWh" (Tagesertrag/-verbrauch dieser Anlage); funktioniert unabhängig vom Detail-Modus, also auch bei reinen `power`-Einträgen. Zusätzlich optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
 
 ### `autarky`
 

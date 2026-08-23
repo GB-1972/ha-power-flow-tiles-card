@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.6.0';
+const PFT_VERSION = '0.6.1';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -769,7 +769,7 @@ class PowerFlowTilesCard extends HTMLElement {
           houseEl._val = houseVal;
           detail.appendChild(houseEl);
         }
-        if (pvMode && l.to_battery) {
+        if (pvMode) {
           batteryEl = document.createElement('span');
           batteryEl.className = 'pft-load-detail-item';
           const batIc = document.createElement('ha-icon');
