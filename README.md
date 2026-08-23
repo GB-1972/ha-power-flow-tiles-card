@@ -8,13 +8,13 @@ Moderne, Apple/Tesla-inspirierte Home-Assistant-Karte für PV-/Speicher-/Netz-/H
 
 ## Status
 
-v0.5.17 — `solar.strings`-Spalte startet jetzt bei 35% statt 50% der PV-Kachelbreite (weiter links), damit sie nicht mehr in den zentralen Akku-Hub/SOC-Donut hineinläuft. (v0.5.16: Spalte startete an der Kachelmitte, linksbündig statt rechtsbündig; v0.5.15: Spalte oben rechts jetzt auf allen Bildschirmbreiten; v0.5.14: Spalte oben rechts eingeführt, aber mit fehlerhaftem Mobile-Fallback; v0.5.13: alle Strings untereinander, aber unterhalb der PV-Leistung; v0.5.12: Umbruch statt Ellipsis; v0.5.9: dieselbe Tagesertrag-Idee auf Ebene der einzelnen MPPT-Strings.)
+v0.6.0 — `solar.strings` (Tagesertrag-Spalte direkt in der PV-Kachel) wieder entfernt: Der begrenzte Platz in der Kachel neben dem zentralen Akku-Hub ließ sich nicht zuverlässig ohne Überlappung lösen (siehe v0.5.9–v0.5.17). Stattdessen bekommen die `home.loads`-Einträge (Anker/SunEnergy/Hoymiles etc., unterhalb der vier Haupt-Kacheln — dort ist deutlich mehr Platz) ein neues optionales `energy_today`-Feld für denselben Zweck.
 
 ## Installation (manuell)
 
 1. `power-flow-tiles-card.js` nach `config/www/` kopieren.
 2. **Einstellungen → Dashboards → Ressourcen** → hinzufügen:
-   - URL: `/local/power-flow-tiles-card.js?v=0.5.17`
+   - URL: `/local/power-flow-tiles-card.js?v=0.6.0`
    - Typ: **JavaScript-Modul**
 3. Browser-Cache leeren (Shift-Reload).
 
@@ -58,13 +58,6 @@ solar:
       power: sensor.gb_solarspeicher_solar_pv4
       energy_today: sensor.gb_solarspeicher_solar_pv4_tagesertrag
       max: 420
-  strings:
-    - name: "Anker"
-      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
-    - name: "SE"
-      energy_today: sensor.garage_sunenergyxt_heutige_pv_erzeugung
-    - name: "HM"
-      energy_today: sensor.hoymiles_tagesertrag
 
 battery:
   power: sensor.gb_solarspeicher_akkuleistung
@@ -96,15 +89,18 @@ home:
       pv: sensor.gb_solarspeicher_solarleistung        # aktiviert Detail-Modus
       to_house: sensor.gb_solarspeicher_ac_hausabgabe
       to_battery: sensor.gb_solarspeicher_aufladeleistung
+      energy_today: sensor.system_gb_homebase_solar_ertrag_taglich
     - name: SunEnergy
       icon: mdi:home-lightning-bolt-outline
       pv: sensor.sunenergyxt_pv_gesamteingangsleistung
       to_house: sensor.xt_local_op
       to_battery: sensor.xt_akku_leistung
+      energy_today: sensor.garage_sunenergyxt_heutige_pv_erzeugung
     - name: Hoymiles
       icon: mdi:home-lightning-bolt-outline
       pv: sensor.gb_bkw_power
       to_house: sensor.gb_bkw_power                    # kein Speicher vorhanden
+      energy_today: sensor.hoymiles_tagesertrag
     - name: Wallbox
       icon: mdi:ev-station
       power: sensor.wallbox_total_active_power
@@ -151,7 +147,6 @@ Wenn die Animation falsch herum läuft (z. B. „Akku entlädt, obwohl er lädt"
 | `show_sun_arc` | bool   | `true`      | Eigene Sektion oben mit Lens-förmigem Bogen, Aufgangs-/Untergangszeit, Tag-/Nacht-Dauer, % des Tages und wandernder Sonne inkl. Power-Pill. `false` zum Ausblenden. |
 | `sun_entity`   | entity | `sun.sun`   | Sonne-Entity (`domain: sun`) für `next_rising` / `next_setting`. Standard reicht für die meisten Setups. |
 | `mppts`        | list   | `[]`        | Liste der einzelnen MPPT-Strings/Panels, beliebig viele Einträge.                                          |
-| `strings`      | list   | `[]`        | Liste der Anlagen/Quellen (z. B. Anker/SunEnergy/Hoymiles) für die Tagesertrag-Aufschlüsselung direkt in der PV-Kachel. Nicht zu verwechseln mit `mppts` — siehe unten. |
 
 Pro `mppts`-Eintrag (einzelner MPPT/Panel, unterhalb der Karte als eigene Zeile mit Füllstand-Bar):
 
@@ -162,14 +157,7 @@ Pro `mppts`-Eintrag (einzelner MPPT/Panel, unterhalb der Karte als eigene Zeile 
 | `energy_today` | entity | Optional. Tages-Gesamtleistung (Ertrag) dieses Strings in kWh — kompakt neben dem Leistungswert, ändert die Kachelgröße nicht. |
 | `max`          | number | Maximalleistung (für die Füllstand-Bar).                            |
 
-Pro `strings`-Eintrag (Anlagen-Gesamtwert, eigene umbrechende Zeile unterhalb des normalen `solar.energy_today`-Sub-Texts in der PV-Kachel):
-
-| Option         | Typ    | Beschreibung                                                        |
-| -------------- | ------ | -------------------------------------------------------------------- |
-| `name`         | string | Kurzer Anzeigename (z. B. „Anker", „SE", „HM").                      |
-| `energy_today` | entity | Tagesertrag dieser Anlage in kWh.                                    |
-
-Layout: Icon/Leistung/`X kWh heute` bleiben links in den ersten 35% der Kachelbreite wie gehabt, `strings` erscheint als separate Spalte ab dort, linksbündig (`Anker 7.1 kWh` / `SE 7.3 kWh` / `HM 4.3 kWh`, jeweils eine eigene Zeile, gilt auf allen Bildschirmbreiten). Die Schriftgröße der aktuellen PV-Leistung (großer Wert links) ändert sich nicht.
+Für einen Tagesertrag je **Anlage** (statt je einzelnem MPPT-String) siehe `energy_today` bei `home.loads` weiter unten — dort ist mehr Platz als in der PV-Kachel.
 
 ### `battery`
 
@@ -230,7 +218,7 @@ Wird **nur** gerendert, wenn `show_battery2: true` UND mindestens `battery2.powe
 | `loads_columns` | number | Optional. Feste Spaltenzahl für die `loads`-Kacheln (z. B. `3`). Ohne Angabe: automatisches Reflow je nach Breite (Default, wie bisher). |
 | `loads`         | list   | Zusatz-Tiles unten (Wallbox, etc.), beliebig viele Einträge.|
 
-Pro `loads`-Eintrag: `name`, `icon`, entweder `power` (einfache Anzeige, ein Wert) **oder** `pv` (aktiviert den Detail-Modus: PV-Leistung als farbiger Hauptwert nach Leistungsband — <200W grau, <500W rot, <1000W blau, <1500W orange, ≥1500W grün, dieselben Schwellen wie bei den MPPT-Strings) zusammen mit optional `to_house` (Zeile "→ Haus") und `to_battery` (Zeile "→ Speicher", negative Werte — z. B. Akku entlädt — werden als 0 dargestellt). Zusätzlich optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
+Pro `loads`-Eintrag: `name`, `icon`, entweder `power` (einfache Anzeige, ein Wert) **oder** `pv` (aktiviert den Detail-Modus: PV-Leistung als farbiger Hauptwert nach Leistungsband — <200W grau, <500W rot, <1000W blau, <1500W orange, ≥1500W grün, dieselben Schwellen wie bei den MPPT-Strings) zusammen mit optional `to_house` (Zeile "→ Haus") und `to_battery` (Zeile "→ Speicher", negative Werte — z. B. Akku entlädt — werden als 0 dargestellt). Zusätzlich optional `energy_today` (entity, kWh) — zeigt eine weitere Detail-Zeile "📅 X kWh" (Tagesertrag/-verbrauch dieser Anlage); funktioniert unabhängig vom Detail-Modus, also auch bei reinen `power`-Einträgen. Zusätzlich optional `full_width` (bool, Default `false`) — bei `true` bekommt diese Kachel eine eigene volle Zeile unterhalb der übrigen Loads, statt sich in die Spaltenreihe einzureihen.
 
 ### `autarky`
 

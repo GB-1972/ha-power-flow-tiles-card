@@ -1,4 +1,4 @@
-const PFT_VERSION = '0.5.17';
+const PFT_VERSION = '0.6.0';
 
 console.info(
   `%c POWER-FLOW-TILES-CARD %c v${PFT_VERSION} `,
@@ -115,7 +115,6 @@ class PowerFlowTilesCard extends HTMLElement {
     c.environment = c.environment ?? {};
     c.solar = c.solar ?? {};
     c.solar.mppts = Array.isArray(c.solar.mppts) ? c.solar.mppts : [];
-    c.solar.strings = Array.isArray(c.solar.strings) ? c.solar.strings : [];
     c.solar.color = c.solar.color ?? DEFAULT_COLORS.solar;
     c.solar.show_sun_arc = c.solar.show_sun_arc !== false;
     c.solar.sun_entity = c.solar.sun_entity ?? 'sun.sun';
@@ -202,11 +201,6 @@ class PowerFlowTilesCard extends HTMLElement {
       icon: m.icon ?? null,
     }));
 
-    const strings = c.solar.strings.map((s) => ({
-      name: s.name ?? '',
-      energy: this._getNum(s.energy_today),
-    }));
-
     const loads = c.home.loads.map((l) => ({
       name: l.name ?? '',
       icon: l.icon ?? 'mdi:flash',
@@ -214,6 +208,7 @@ class PowerFlowTilesCard extends HTMLElement {
       pv: l.pv ? this._getNum(l.pv) : null,
       toHouse: l.to_house ? this._getNum(l.to_house) : null,
       toBattery: l.to_battery ? this._getNum(l.to_battery) : null,
+      energyToday: l.energy_today ? this._getNum(l.energy_today) : null,
     }));
 
     let autarky = null;
@@ -230,7 +225,7 @@ class PowerFlowTilesCard extends HTMLElement {
       batP2, batSoc2, batChargeE2, batDischargeE2,
       gridP, gridImpE, gridExpE, gridSolarCovered,
       homeP, homeE, temp,
-      mppts, strings, loads, autarky,
+      mppts, loads, autarky,
     };
   }
 
@@ -601,7 +596,6 @@ class PowerFlowTilesCard extends HTMLElement {
     head.appendChild(lbl);
 
     const isBatSplit = key === 'battery' && this._config._hasBat2;
-    const hasPvStrings = key === 'pv' && this._config.solar.strings.length > 0;
     let main;
     let sub;
     let main2 = null;
@@ -614,19 +608,7 @@ class PowerFlowTilesCard extends HTMLElement {
     let col2Name = null;
     let batName = null;
     let gridCoverage = null;
-    let stringsEl = null;
-
-    let mainCol = t;
-    if (hasPvStrings) {
-      t.classList.add('pft-tile-pv-split');
-      mainCol = document.createElement('div');
-      mainCol.className = 'pft-tile-pv-col-main';
-      stringsEl = document.createElement('div');
-      stringsEl.className = 'pft-tile-strings pft-tile-pv-col-strings';
-      t.appendChild(mainCol);
-      t.appendChild(stringsEl);
-    }
-    mainCol.appendChild(head);
+    t.appendChild(head);
 
     if (isBatSplit) {
       t.classList.add('pft-tile-battery-split');
@@ -663,30 +645,24 @@ class PowerFlowTilesCard extends HTMLElement {
       main2 = c2.mainCol; sub2 = c2.subCol; col2Ic = c2.colIc; col2Soc = c2.colSoc; col2Name = c2.nameEl;
       cols.appendChild(c1.col);
       cols.appendChild(c2.col);
-      mainCol.appendChild(cols);
+      t.appendChild(cols);
     } else {
       if (key === 'battery') {
         batName = document.createElement('div');
         batName.className = 'pft-tile-bat-name';
-        mainCol.appendChild(batName);
+        t.appendChild(batName);
       }
       main = document.createElement('div');
       main.className = 'pft-tile-main';
       sub = document.createElement('div');
       sub.className = 'pft-tile-sub';
-      mainCol.appendChild(main);
-      mainCol.appendChild(sub);
+      t.appendChild(main);
+      t.appendChild(sub);
       if (key === 'grid') {
         gridCoverage = document.createElement('div');
         gridCoverage.className = 'pft-tile-grid-coverage';
-        mainCol.appendChild(gridCoverage);
+        t.appendChild(gridCoverage);
       }
-    }
-
-    if (key === 'pv' && !hasPvStrings) {
-      stringsEl = document.createElement('div');
-      stringsEl.className = 'pft-tile-strings';
-      t.appendChild(stringsEl);
     }
 
     const moreInfo = this._tileEntityFor(key);
@@ -694,7 +670,7 @@ class PowerFlowTilesCard extends HTMLElement {
       t.classList.add('pft-clickable');
       t.addEventListener('click', () => this._fireMoreInfo(moreInfo));
     }
-    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName, gridCoverage, stringsEl };
+    this._els.tiles[key] = { root: t, ic, main, sub, main2, sub2, col1Ic, col1Soc, col2Ic, col2Soc, col1Name, col2Name, batName, gridCoverage };
     return t;
   }
 
@@ -778,10 +754,11 @@ class PowerFlowTilesCard extends HTMLElement {
 
       let houseEl = null;
       let batteryEl = null;
-      if (pvMode) {
+      let energyEl = null;
+      if (pvMode || l.energy_today) {
         const detail = document.createElement('div');
         detail.className = 'pft-load-detail';
-        if (l.to_house) {
+        if (pvMode && l.to_house) {
           houseEl = document.createElement('span');
           houseEl.className = 'pft-load-detail-item';
           const houseIc = document.createElement('ha-icon');
@@ -792,7 +769,7 @@ class PowerFlowTilesCard extends HTMLElement {
           houseEl._val = houseVal;
           detail.appendChild(houseEl);
         }
-        if (l.to_battery) {
+        if (pvMode && l.to_battery) {
           batteryEl = document.createElement('span');
           batteryEl.className = 'pft-load-detail-item';
           const batIc = document.createElement('ha-icon');
@@ -802,6 +779,17 @@ class PowerFlowTilesCard extends HTMLElement {
           batteryEl.appendChild(batVal);
           batteryEl._val = batVal;
           detail.appendChild(batteryEl);
+        }
+        if (l.energy_today) {
+          energyEl = document.createElement('span');
+          energyEl.className = 'pft-load-detail-item';
+          const energyIc = document.createElement('ha-icon');
+          energyIc.setAttribute('icon', 'mdi:calendar-today-outline');
+          const energyVal = document.createElement('span');
+          energyEl.appendChild(energyIc);
+          energyEl.appendChild(energyVal);
+          energyEl._val = energyVal;
+          detail.appendChild(energyEl);
         }
         txt.appendChild(detail);
       }
@@ -814,7 +802,7 @@ class PowerFlowTilesCard extends HTMLElement {
         t.addEventListener('click', () => this._fireMoreInfo(clickEntity));
       }
       wrap.appendChild(t);
-      this._els.loads.push({ root: t, v, ic, pvMode, houseEl, batteryEl });
+      this._els.loads.push({ root: t, v, ic, pvMode, houseEl, batteryEl, energyEl });
     }
     return wrap;
   }
@@ -836,17 +824,6 @@ class PowerFlowTilesCard extends HTMLElement {
       active: (v.solarP ?? 0) > c.flow_threshold,
       color: c.solar.color,
     });
-    const pvStringsEl = this._els.tiles.pv?.stringsEl;
-    if (pvStringsEl) {
-      pvStringsEl.innerHTML = '';
-      for (const s of v.strings) {
-        const item = document.createElement('span');
-        item.className = 'pft-tile-strings-item';
-        item.textContent = `${s.name} ${s.energy !== null ? fmtEnergy(s.energy, de) : '–'}`;
-        pvStringsEl.appendChild(item);
-      }
-    }
-
     const gridImporting = (v.gridP ?? 0) > c.flow_threshold;
     const gridExporting = (v.gridP ?? 0) < -c.flow_threshold;
     const gridArrow = gridImporting ? '↓ ' : (gridExporting ? '↑ ' : '');
@@ -1042,6 +1019,7 @@ class PowerFlowTilesCard extends HTMLElement {
           els.v.textContent = fmtPower(l.power, { decimals: dp });
           els.root.classList.toggle('pft-load-active', (l.power ?? 0) > c.flow_threshold);
         }
+        if (els.energyEl) els.energyEl._val.textContent = l.energyToday !== null ? fmtEnergy(l.energyToday, de) : '–';
       }
     }
 
@@ -1284,39 +1262,6 @@ class PowerFlowTilesCard extends HTMLElement {
         white-space: nowrap;
         margin-top: 2px;
       }
-      .pft-tile-strings {
-        display: flex;
-        flex-direction: column;
-        row-gap: 1px;
-        margin-top: 2px;
-      }
-      .pft-tile-strings:empty { display: none; }
-      .pft-tile-pv-split {
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 10px;
-      }
-      .pft-tile-pv-col-main {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-        flex: 0 0 35%;
-      }
-      .pft-tile-pv-col-strings {
-        margin-top: 0;
-        flex: 1 1 auto;
-        min-width: 0;
-        align-items: flex-start;
-        text-align: left;
-      }
-      .pft-tile-strings-item {
-        font-size: 0.72rem;
-        color: var(--secondary-text-color);
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-      }
-
       .pft-solar-arc {
         margin-bottom: 10px;
         padding: 8px 10px 6px;
@@ -1723,7 +1668,6 @@ class PowerFlowTilesCard extends HTMLElement {
         .pft-tile { padding: 6px 8px; }
         .pft-tile-main { font-size: 1.05rem; }
         .pft-tile-sub { font-size: 0.66rem; }
-        .pft-tile-strings-item { font-size: 0.64rem; }
         .pft-hub-bat-ic { --mdc-icon-size: 20px; }
         .pft-hub-soc { font-size: 0.85rem; }
         .pft-mppts { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
@@ -1959,11 +1903,6 @@ const MPPT_SCHEMA = [
   { name: 'energy_today', selector: SENSOR_FILTER },
 ];
 
-const STRING_SCHEMA = [
-  { name: 'name', selector: { text: {} } },
-  { name: 'energy_today', selector: SENSOR_FILTER },
-];
-
 const LOAD_SCHEMA = [
   {
     type: 'grid',
@@ -1983,6 +1922,7 @@ const LOAD_SCHEMA = [
       { name: 'to_battery', selector: SENSOR_FILTER },
     ],
   },
+  { name: 'energy_today', selector: SENSOR_FILTER },
   { name: 'full_width', selector: { boolean: {} } },
 ];
 
@@ -2004,10 +1944,8 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._mpptForms = [];
-    this._stringForms = [];
     this._loadForms = [];
     this._lastMpptCount = -1;
-    this._lastStringCount = -1;
     this._lastLoadCount = -1;
   }
 
@@ -2093,7 +2031,6 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     this._mainForm.data = this._formData();
     this._mainForm.computeLabel = (s) => EDITOR_LABELS[s.name] ?? s.name;
     this._renderMppts();
-    this._renderStrings();
     this._renderLoads();
   }
 
@@ -2199,32 +2136,6 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     mpptSection.appendChild(this._mpptsAdd);
     wrap.appendChild(mpptSection);
 
-    const stringSection = document.createElement('div');
-    stringSection.className = 'pft-edit-section';
-    const stringH = document.createElement('div');
-    stringH.className = 'pft-edit-h';
-    const stringHIc = document.createElement('ha-icon');
-    stringHIc.setAttribute('icon', 'mdi:solar-power-variant');
-    const stringHTxt = document.createElement('span');
-    stringHTxt.textContent = 'Anlagen-Tagesertrag (PV-Tile)';
-    stringH.appendChild(stringHIc);
-    stringH.appendChild(stringHTxt);
-    const stringSub = document.createElement('div');
-    stringSub.className = 'pft-edit-sub';
-    stringSub.textContent = 'Kompakte Tagesertrag-Aufschlüsselung direkt in der PV-Kachel (z. B. je Wechselrichter/Speicher-Anlage). Name + Tagesertrag-Sensor, beliebig viele.';
-    this._stringsList = document.createElement('div');
-    this._stringsList.className = 'pft-edit-section';
-    this._stringsAdd = document.createElement('button');
-    this._stringsAdd.type = 'button';
-    this._stringsAdd.className = 'pft-edit-add';
-    this._stringsAdd.textContent = '+ Anlage hinzufügen';
-    this._stringsAdd.addEventListener('click', () => this._addString());
-    stringSection.appendChild(stringH);
-    stringSection.appendChild(stringSub);
-    stringSection.appendChild(this._stringsList);
-    stringSection.appendChild(this._stringsAdd);
-    wrap.appendChild(stringSection);
-
     const loadSection = document.createElement('div');
     loadSection.className = 'pft-edit-section';
     const loadH = document.createElement('div');
@@ -2237,7 +2148,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     loadH.appendChild(loadHTxt);
     const loadSub = document.createElement('div');
     loadSub.className = 'pft-edit-sub';
-    loadSub.textContent = 'Mini-Tiles unter dem Haus (Wallbox, Wärmepumpe etc.). Pro Eintrag: Name, Icon, Sensor.';
+    loadSub.textContent = 'Mini-Tiles unter dem Haus (Anker/SunEnergy/Hoymiles, Wallbox etc.). Pro Eintrag: Name, Icon, Sensor, optional Tagesertrag.';
     this._loadsList = document.createElement('div');
     this._loadsList.className = 'pft-edit-section';
     this._loadsAdd = document.createElement('button');
@@ -2305,82 +2216,6 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     });
   }
 
-  _renderStrings() {
-    const strings = this._config.solar?.strings ?? [];
-    const computeLabel = (s) => SUB_LABELS[s.name] ?? s.name;
-    if (strings.length !== this._lastStringCount) {
-      this._lastStringCount = strings.length;
-      this._stringsList.innerHTML = '';
-      this._stringForms = [];
-      strings.forEach((s, idx) => {
-        const item = document.createElement('div');
-        item.className = 'pft-edit-item';
-        const form = document.createElement('ha-form');
-        form.computeLabel = computeLabel;
-        form.addEventListener('value-changed', (ev) => this._onStringChange(idx, ev));
-        item.appendChild(form);
-        const rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'pft-edit-rm';
-        rm.title = 'Entfernen';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', () => this._removeString(idx));
-        item.appendChild(rm);
-        this._stringsList.appendChild(item);
-        this._stringForms.push(form);
-      });
-    }
-    strings.forEach((s, idx) => {
-      const form = this._stringForms[idx];
-      if (!form) return;
-      form.hass = this._hass;
-      form.schema = STRING_SCHEMA;
-      const data = {
-        name: s.name ?? '',
-        energy_today: s.energy_today ?? '',
-      };
-      if (JSON.stringify(form.data) !== JSON.stringify(data)) {
-        form.data = data;
-      }
-    });
-  }
-
-  _addString() {
-    const solar = { ...(this._config.solar ?? {}) };
-    solar.strings = [...(solar.strings ?? []), { name: '', energy_today: '' }];
-    this._config = { ...this._config, solar };
-    this._dispatchChange();
-    this._render();
-  }
-
-  _removeString(idx) {
-    const solar = { ...(this._config.solar ?? {}) };
-    solar.strings = (solar.strings ?? []).filter((_, i) => i !== idx);
-    if (!solar.strings.length) delete solar.strings;
-    this._config = { ...this._config, solar };
-    if (!Object.keys(this._config.solar ?? {}).length) {
-      const next = { ...this._config };
-      delete next.solar;
-      this._config = next;
-    }
-    this._dispatchChange();
-    this._render();
-  }
-
-  _onStringChange(idx, ev) {
-    ev.stopPropagation();
-    const v = ev.detail?.value ?? {};
-    const solar = { ...(this._config.solar ?? {}) };
-    const strings = [...(solar.strings ?? [])];
-    const entry = { ...(strings[idx] ?? {}) };
-    if (v.name) entry.name = v.name; else delete entry.name;
-    if (v.energy_today) entry.energy_today = v.energy_today; else delete entry.energy_today;
-    strings[idx] = entry;
-    solar.strings = strings;
-    this._config = { ...this._config, solar };
-    this._dispatchChange();
-  }
-
   _renderLoads() {
     const loads = this._config.home?.loads ?? [];
     const computeLabel = (s) => SUB_LABELS[s.name] ?? s.name;
@@ -2418,6 +2253,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
         pv: l.pv ?? '',
         to_house: l.to_house ?? '',
         to_battery: l.to_battery ?? '',
+        energy_today: l.energy_today ?? '',
         full_width: l.full_width === true,
       };
       if (JSON.stringify(form.data) !== JSON.stringify(data)) {
@@ -2499,6 +2335,7 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     if (v.pv) entry.pv = v.pv; else delete entry.pv;
     if (v.to_house) entry.to_house = v.to_house; else delete entry.to_house;
     if (v.to_battery) entry.to_battery = v.to_battery; else delete entry.to_battery;
+    if (v.energy_today) entry.energy_today = v.energy_today; else delete entry.energy_today;
     if (v.full_width === true) entry.full_width = true; else delete entry.full_width;
     loads[idx] = entry;
     home.loads = loads;
@@ -2528,8 +2365,8 @@ class PowerFlowTilesCardEditor extends HTMLElement {
     else delete solar.show_sun_arc;
     if (vsa.sun_entity && vsa.sun_entity !== 'sun.sun') solar.sun_entity = vsa.sun_entity;
     else delete solar.sun_entity;
-    const solarKeysToKeep = Object.keys(solar).filter((k) => k !== 'mppts' && k !== 'strings');
-    if (solarKeysToKeep.length || (solar.mppts && solar.mppts.length) || (solar.strings && solar.strings.length)) next.solar = solar;
+    const solarKeysToKeep = Object.keys(solar).filter((k) => k !== 'mppts');
+    if (solarKeysToKeep.length || (solar.mppts && solar.mppts.length)) next.solar = solar;
     else delete next.solar;
 
     const battery = {};
